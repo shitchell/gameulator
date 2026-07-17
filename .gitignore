@@ -1,6 +1,7 @@
 /target
 /games/
-/personal/          # personal run notes / journey / trackers — never tracked
+# personal run notes / journey / trackers — never tracked
+/personal/
 **/*.gbc
 **/*.sav
 **/*.srm
