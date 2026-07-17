@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use crate::core::sram::{self, SaveData};
 
 /// Runaway guard: the maximum number of `(item, qty)` pairs [`read_item_list`]
-/// will walk before giving up. Mirrors `read_save.py`'s `limit=60`. The real
+/// will walk before giving up. Adapts `read_save.py`'s `limit=60`. The real
 /// caps are smaller (Legacy bag holds 41, PC ~50), so 64 comfortably covers a
 /// valid list while still bounding a corrupt/unterminated one.
 const MAX_ITEMS: usize = 64;
@@ -53,10 +53,10 @@ pub fn bag_items(save: &SaveData) -> Vec<ItemStack> {
 /// Parse the PC item list.
 ///
 /// The byte at [`sram::PC_ITEMS`] is a leading COUNT byte; the `(item, qty)`
-/// pairs start one byte later. The `+ 1` skips that count byte (matching
-/// `read_save.py`'s `read_items(d, O_PC + 1)`) — it is load-bearing, not a bug.
+/// pairs start at [`sram::PC_ITEMS_DATA`] (one byte later), matching
+/// `read_save.py`'s `read_items(d, O_PC + 1)`.
 pub fn pc_items(save: &SaveData) -> Vec<ItemStack> {
-    read_item_list(save, sram::PC_ITEMS + 1)
+    read_item_list(save, sram::PC_ITEMS_DATA)
 }
 
 #[cfg(test)]
@@ -102,6 +102,20 @@ mod tests {
         seed(&mut bytes, sram::BAG_ITEMS, &[0xFF]);
         let save = SaveData::new(bytes);
         assert_eq!(bag_items(&save), vec![]);
+    }
+
+    #[test]
+    fn quantity_of_0xff_is_not_a_terminator() {
+        let mut bytes = blank_sram();
+        // A legit stack with quantity 255, then the real 0xFF terminator on the
+        // NEXT item-id byte. Guards the invariant that the sentinel is checked on
+        // the item-id position, never on the quantity.
+        seed(&mut bytes, sram::BAG_ITEMS, &[10, 0xFF, 0xFF]);
+        let save = SaveData::new(bytes);
+        assert_eq!(
+            bag_items(&save),
+            vec![ItemStack { item_id: 10, quantity: 255 }]
+        );
     }
 
     #[test]

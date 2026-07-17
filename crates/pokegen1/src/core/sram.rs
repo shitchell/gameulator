@@ -18,6 +18,10 @@ pub const NAME: usize = 0x2598;
 pub const BAG_ITEMS: usize = 0x25CA;
 /// PC item list (leading count byte, then item,qty pairs, `0xFF`-terminated).
 pub const PC_ITEMS: usize = 0x2834;
+/// Start of the PC item `(item,qty)` pairs. Immediately follows the [`PC_ITEMS`]
+/// count byte; given its own named home per the single-offset-map principle (so
+/// callers never open-code `PC_ITEMS + 1`).
+pub const PC_ITEMS_DATA: usize = 0x2835;
 /// Playtime hours (1 byte).
 pub const PLAYTIME_HOURS: usize = 0x2CED;
 /// Playtime minutes (1 byte).
