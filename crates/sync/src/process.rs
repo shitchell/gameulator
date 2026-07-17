@@ -36,6 +36,10 @@ pub enum Outcome {
 /// even on a regression) and summarized to `status.json`, yielding
 /// [`Outcome::Applied`] carrying the [`RegressionCheck`]. `stamp` is injected and
 /// reused for both the snapshot filename and the status `last_change`.
+///
+/// The snapshot is written before `status.json`, so if the (atomic) status write
+/// fails the durable save backup is already committed and `status.json` self-heals
+/// on the next accepted save — callers should NOT add rollback logic.
 pub fn process_save(
     cfg: &Config,
     game: &dyn GameData,
