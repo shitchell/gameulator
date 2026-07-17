@@ -8,6 +8,23 @@ use serde::Serialize;
 
 use pokegen1::{GameData, ItemStack, Playtime, Pokemon, Save, Status};
 
+/// The set of supported games. Add variants as overlays land (e.g. `Blue`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GameId {
+    YellowLegacy,
+}
+
+/// Map a [`GameId`] to its concrete overlay, boxed as a `dyn GameData`.
+///
+/// The controller owns the id→overlay mapping so views stay game-agnostic:
+/// a view passes a [`GameId`] and receives a resolver, never naming an overlay
+/// crate. Adding a game = one new arm here, with zero view changes.
+pub fn game_data(game: GameId) -> Box<dyn GameData> {
+    match game {
+        GameId::YellowLegacy => Box::new(pokegen1::YellowLegacy::new()),
+    }
+}
+
 /// A single status condition on a party member. Views format these however they
 /// like (the CLI renders read_save.py-style labels; a web view can badge them).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -111,7 +128,7 @@ pub fn load_save(path: &Path) -> anyhow::Result<Save> {
 }
 
 /// Build a presentation-ready summary of the party.
-pub fn party_summary(save: &Save, game: &impl GameData) -> Vec<PartyMemberView> {
+pub fn party_summary(save: &Save, game: &dyn GameData) -> Vec<PartyMemberView> {
     save.party
         .iter()
         .enumerate()
@@ -122,7 +139,7 @@ pub fn party_summary(save: &Save, game: &impl GameData) -> Vec<PartyMemberView> 
 /// Build a presentation-ready view of an item list (bag or PC).
 ///
 /// Called for both `&save.bag` and `&save.pc`.
-pub fn items_view(items: &[ItemStack], game: &impl GameData) -> Vec<ItemView> {
+pub fn items_view(items: &[ItemStack], game: &dyn GameData) -> Vec<ItemView> {
     items
         .iter()
         .map(|item| ItemView {
@@ -146,7 +163,7 @@ pub fn save_info(save: &Save) -> SaveInfoView {
 /// Owns the three deferred presentation rules: species-name resolution with a
 /// `#id` fallback, nickname suppression (keep it only if it differs from the
 /// resolved species name), and materialization of the `fainted` bool.
-fn party_member_view(slot: u8, mon: &Pokemon, game: &impl GameData) -> PartyMemberView {
+fn party_member_view(slot: u8, mon: &Pokemon, game: &dyn GameData) -> PartyMemberView {
     let species = resolve(game.species_name(mon.species_id), mon.species_id);
 
     // Nickname suppression: keep only a nickname that differs from the resolved
@@ -465,5 +482,13 @@ mod tests {
         let game = pokegen1::YellowLegacy::new();
         let out = party_summary(&save, &game);
         assert_eq!(out[0].species, "MEWTWO");
+    }
+
+    /// The selector wires the real overlay through the `dyn GameData` boundary:
+    /// `game_data(YellowLegacy)` resolves the known id 131 -> MEWTWO.
+    #[test]
+    fn game_data_selects_yellow_legacy_overlay() {
+        let game = game_data(GameId::YellowLegacy);
+        assert_eq!(game.species_name(131), Some("MEWTWO"));
     }
 }

@@ -1,9 +1,11 @@
 //! `gameulator` — a thin CLI view over the `app` controller.
 //!
-//! Each subcommand constructs ONE [`YellowLegacy`], loads + parses the save via
-//! [`app::load_save`], calls the matching controller op, and renders the
-//! resulting DTOs. All logic (name resolution, nickname suppression, fainted /
-//! status derivation) lives in `app`; this binary only formats.
+//! Each subcommand asks `app` for a game resolver via `app::game_data`, loads
+//! and parses the save via `app::load_save`, calls the matching controller op,
+//! and renders the resulting DTOs. Game selection is a controller concern, so
+//! this view names only an `app::GameId`, never a concrete overlay crate. All
+//! logic (name resolution, nickname suppression, fainted and status derivation)
+//! lives in `app`; this binary only formats.
 
 mod render;
 
@@ -11,8 +13,6 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-
-use pokegen1::YellowLegacy;
 
 #[derive(Parser)]
 #[command(name = "gameulator", about = "Inspect a Gen-1 Pokémon save")]
@@ -62,7 +62,7 @@ enum Command {
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
-    let game = YellowLegacy::new();
+    let game = app::game_data(app::GameId::YellowLegacy);
 
     match cli.command {
         Command::Party {
@@ -71,7 +71,7 @@ fn main() -> Result<()> {
             compact,
         } => {
             let parsed = app::load_save(&save)?;
-            let view = app::party_summary(&parsed, &game);
+            let view = app::party_summary(&parsed, game.as_ref());
             if json {
                 println!("{}", serde_json::to_string_pretty(&view)?);
             } else if compact {
@@ -82,7 +82,7 @@ fn main() -> Result<()> {
         }
         Command::Bag { save, json } => {
             let parsed = app::load_save(&save)?;
-            let view = app::items_view(&parsed.bag, &game);
+            let view = app::items_view(&parsed.bag, game.as_ref());
             if json {
                 println!("{}", serde_json::to_string_pretty(&view)?);
             } else {
@@ -91,7 +91,7 @@ fn main() -> Result<()> {
         }
         Command::Pc { save, json } => {
             let parsed = app::load_save(&save)?;
-            let view = app::items_view(&parsed.pc, &game);
+            let view = app::items_view(&parsed.pc, game.as_ref());
             if json {
                 println!("{}", serde_json::to_string_pretty(&view)?);
             } else {
