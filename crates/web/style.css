@@ -1,3 +1,376 @@
+/* Gameulator web dashboard — token-driven design system.
+ *
+ * HOW THIS WORKS
+ * ---------------
+ * Every visual value (color, spacing, radius, shadow, font) lives as a CSS
+ * custom property in the `:root` block below. Component rules NEVER hard-code a
+ * color or reused size — they read `var(--token)`. So the `:root` block is THE
+ * single restyle point: change a token, everything re-themes.
+ *
+ * LIGHT / DARK
+ * ------------
+ * `:root` holds the LIGHT palette (the default). The one
+ * `@media (prefers-color-scheme: dark)` block overrides the SAME token names
+ * with dark values — so the OS light/dark toggle re-themes the whole dashboard
+ * with zero component/JS changes. Layout/type tokens are shared (defined once);
+ * dark only overrides the colors that differ.
+ */
+
+/* ==========================================================================
+ * THE restyle point — every value below is a var(). Edit here to re-theme.
+ * (LIGHT defaults.)
+ * ========================================================================== */
+:root {
+  /* -- Surfaces -- */
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #e9ecf1;
+  --border: #d3d8e0;
+
+  /* -- Text -- */
+  --text: #1c2230;
+  --text-muted: #667085;
+  /* text drawn ON a colored badge/pill (accent, hp, status, ok/bad) */
+  --on-accent: #ffffff;
+
+  /* -- Accent -- */
+  --accent: #3b6fe0;
+
+  /* -- HP bands -- */
+  --hp-high: #2ea043;
+  --hp-mid: #e0a12b;
+  --hp-low: #e0433b;
+
+  /* -- Status conditions -- */
+  --st-sleep: #7a5cc0;
+  --st-poison: #9b3fb5;
+  --st-burn: #e0552b;
+  --st-freeze: #2b9fe0;
+  --st-paralyze: #d6b52b;
+
+  /* -- Badges -- */
+  --ok: #2ea043;
+  --bad: #e0433b;
+
+  /* -- Errors -- */
+  --error: #b42318;
+  --error-bg: #fdecea;
+
+  /* -- Muted / fainted -- */
+  --muted: #8a92a3;
+  --fainted-opacity: 0.5;
+
+  /* -- Layout -- */
+  --gap: 0.75rem;
+  --pad: 1rem;
+  --radius: 8px;
+  --shadow: 0 1px 3px rgba(16, 24, 40, 0.12);
+
+  /* -- Type -- */
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Fira Code", Menlo,
+    Consolas, monospace;
+  --font-size: 15px;
+  --font-size-sm: 0.8rem;
+  --font-size-lg: 1.15rem;
+}
+
+/* ==========================================================================
+ * DARK override — same token names, dark-tuned values. Colors only.
+ * ========================================================================== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* -- Surfaces -- */
+    --bg: #14161c;
+    --surface: #1e2129;
+    --surface-2: #282c37;
+    --border: #363b47;
+
+    /* -- Text -- */
+    --text: #e6e9ef;
+    --text-muted: #9aa2b1;
+    /* dark pills use a near-white ink too */
+    --on-accent: #f2f4f8;
+
+    /* -- Accent -- */
+    --accent: #6b98f2;
+
+    /* -- HP bands (brighter for dark) -- */
+    --hp-high: #46c162;
+    --hp-mid: #f0b846;
+    --hp-low: #f26159;
+
+    /* -- Status conditions (brighter for dark) -- */
+    --st-sleep: #a487e0;
+    --st-poison: #c266dc;
+    --st-burn: #f27a52;
+    --st-freeze: #58bff2;
+    --st-paralyze: #ecd257;
+
+    /* -- Badges -- */
+    --ok: #46c162;
+    --bad: #f26159;
+
+    /* -- Errors -- */
+    --error: #f28d84;
+    --error-bg: #3a1f1c;
+
+    /* -- Muted / fainted -- */
+    --muted: #767e8d;
+    --fainted-opacity: 0.45;
+  }
+}
+
+/* ==========================================================================
+ * Base / container
+ * ========================================================================== */
 body {
-  font-family: sans-serif;
+  margin: 0;
+  padding: var(--pad);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--font-size);
+  line-height: 1.4;
+}
+
+h1 {
+  margin: 0 0 var(--gap);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* ==========================================================================
+ * Info header (.info) — trainer, playtime, checksum badge
+ * ========================================================================== */
+.info {
+  display: flex;
+  align-items: center;
+  gap: var(--gap);
+  flex-wrap: wrap;
+  padding: var(--pad);
+  margin-bottom: var(--gap);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.info .trainer {
+  font-weight: 600;
+}
+
+.info .playtime {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.badge {
+  margin-left: auto;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--on-accent);
+}
+
+.badge.ok {
+  background: var(--ok);
+}
+
+.badge.bad {
+  background: var(--bad);
+}
+
+/* ==========================================================================
+ * Party grid (.party-grid) + card (.party-card)
+ * ========================================================================== */
+.party-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--gap);
+  margin-bottom: var(--gap);
+}
+
+.party-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: var(--pad);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.party-card.fainted {
+  opacity: var(--fainted-opacity);
+  filter: grayscale(0.6);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+}
+
+.level {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+ * HP bar (.hp-bar / .hp-fill / .hp-label)
+ * ========================================================================== */
+.hp-bar {
+  height: 8px;
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.hp-fill {
+  height: 100%;
+  border-radius: var(--radius);
+  transition: width 0.3s ease;
+}
+
+.hp-fill.hp-high {
+  background: var(--hp-high);
+}
+
+.hp-fill.hp-mid {
+  background: var(--hp-mid);
+}
+
+.hp-fill.hp-low {
+  background: var(--hp-low);
+}
+
+.hp-label {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+ * Status badges (.status-badge / .st-*)
+ * ========================================================================== */
+.status-badge {
+  display: inline-block;
+  margin: 0.1rem 0.25rem 0.1rem 0;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--on-accent);
+}
+
+.st-sleep {
+  background: var(--st-sleep);
+}
+
+.st-poison {
+  background: var(--st-poison);
+}
+
+.st-burn {
+  background: var(--st-burn);
+}
+
+.st-freeze {
+  background: var(--st-freeze);
+}
+
+.st-paralyze {
+  background: var(--st-paralyze);
+  /* amber pill reads better with dark text */
+  color: var(--text);
+}
+
+/* ==========================================================================
+ * Moves (.moves)
+ * ========================================================================== */
+.moves {
+  margin: 0.25rem 0 0;
+  padding-left: 1.1rem;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.moves li {
+  margin: 0.1rem 0;
+}
+
+/* ==========================================================================
+ * Item lists (.item-list) + muted (none)
+ * ========================================================================== */
+.item-list {
+  padding: var(--pad);
+  margin-bottom: var(--gap);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.item-list h2 {
+  margin: 0 0 0.5rem;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+}
+
+.item-list ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.item-list li {
+  margin: 0.15rem 0;
+}
+
+.muted {
+  margin: 0;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* ==========================================================================
+ * Error banner (.error-banner) — non-destructive overlay above content
+ * ========================================================================== */
+.error-banner {
+  padding: 0.5rem var(--pad);
+  margin-bottom: var(--gap);
+  background: var(--error-bg);
+  color: var(--error);
+  border: 1px solid var(--error);
+  border-radius: var(--radius);
+  font-weight: 600;
+}
+
+/* ==========================================================================
+ * Plain state line (.state) — loading / empty / error, centered
+ * ========================================================================== */
+.state {
+  margin: 3rem auto;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.state.error {
+  color: var(--error);
+  font-weight: 600;
 }
