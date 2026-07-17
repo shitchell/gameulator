@@ -25,7 +25,9 @@ rom:
 # relative default paths resolve there. Blocks (Ctrl-C to stop); interactive use
 # only, not part of the build.
 web:
+	@command -v trunk >/dev/null || { echo "ERROR: trunk not installed — run: cargo install trunk (and: rustup target add wasm32-unknown-unknown)"; exit 1; }
 	cd crates/web && trunk build --release
+	# --dist-dir/--status-path mirror WebConfig's defaults (explicit here for clarity).
 	cargo run -p web-server --bin gameulator-web -- \
 		--dist-dir crates/web/dist \
 		--status-path "games/Pokemon/Yellow Legacy/saves/status.json"
