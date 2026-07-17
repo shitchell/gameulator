@@ -10,26 +10,11 @@
 use std::path::Path;
 
 use anyhow::Context;
-use serde::Serialize;
 
 // All types come from `app` (which re-exports the pokegen1 ones its API needs),
-// so this seam depends only on the controller boundary.
-use app::{GameData, PartyMemberView, Playtime, Save};
-
-/// The parsed summary written to `status.json` after each accepted save. This is
-/// the seam the Milestone-3 web view reads/subscribes to. Serialize-only for now
-/// (M3 will add Deserialize on the app DTOs when the WASM view consumes it).
-#[derive(Debug, Clone, Serialize)]
-pub struct StatusView {
-    pub trainer: String,
-    pub playtime: Playtime,
-    pub checksum_ok: bool,
-    pub party: Vec<PartyMemberView>,
-    /// The snapshot timestamp for this change (the `stamp` used for the snapshot).
-    pub last_change: String,
-    /// Path to the snapshot written for this change, if any.
-    pub snapshot: Option<String>,
-}
+// so this seam depends only on the controller boundary. `StatusView` is the
+// shared web↔sync contract, owned by `app`: sync writes it, the browser reads it.
+use app::{GameData, Save, StatusView};
 
 /// Build + write `status.json` from a parsed save. Reuses the `app` controller
 /// (save_info + party_summary) so the JSON contract is exactly the app DTOs +

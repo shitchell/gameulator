@@ -4,7 +4,7 @@
 use std::path::Path;
 
 use anyhow::Context;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 // Re-export the pokegen1 types this crate's PUBLIC API references, so callers
 // (cli, sync, web) depend only on `app` and never reach into pokegen1 to name a
@@ -35,7 +35,7 @@ pub fn game_data(game: GameId) -> Box<dyn GameData + Send> {
 
 /// A single status condition on a party member. Views format these however they
 /// like (the CLI renders read_save.py-style labels; a web view can badge them).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "kind")]
 pub enum Condition {
     Sleep { turns: u8 },
@@ -46,7 +46,7 @@ pub enum Condition {
 }
 
 /// A single party member, resolved and materialized for presentation.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PartyMemberView {
     pub slot: u8,
     /// Resolved species name. Unresolved ids render as `#<id>`.
@@ -67,7 +67,7 @@ pub struct PartyMemberView {
 }
 
 /// A single move slot, name-resolved for presentation.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MoveView {
     /// Resolved move name. Unresolved ids render as `#<id>`.
     pub name: String,
@@ -77,7 +77,7 @@ pub struct MoveView {
 }
 
 /// A single item stack, name-resolved for presentation (bag or PC).
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ItemView {
     /// Resolved item name. Unresolved ids render as `#<id>`.
     pub name: String,
@@ -85,11 +85,25 @@ pub struct ItemView {
 }
 
 /// Save-level metadata for presentation.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SaveInfoView {
     pub trainer: String,
     pub playtime: Playtime,
     pub checksum_ok: bool,
+}
+
+/// The parsed save summary written to `status.json` by the sync watcher and read
+/// by the web dashboard. The shared web↔sync contract.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StatusView {
+    pub trainer: String,
+    pub playtime: Playtime,
+    pub checksum_ok: bool,
+    pub party: Vec<PartyMemberView>,
+    /// The snapshot timestamp for this change.
+    pub last_change: String,
+    /// Path to the snapshot written for this change, if any.
+    pub snapshot: Option<String>,
 }
 
 /// Resolve an id to a display name, falling back to `#<id>` for unknown ids
@@ -498,5 +512,47 @@ mod tests {
     fn game_data_selects_yellow_legacy_overlay() {
         let game = game_data(GameId::YellowLegacy);
         assert_eq!(game.species_name(131), Some("MEWTWO"));
+    }
+
+    /// The web↔sync contract: `StatusView` (with a party member carrying a
+    /// `Condition` and a `MoveView`) survives a JSON round-trip byte-for-byte.
+    /// This proves the browser can reconstruct exactly what `sync` wrote.
+    #[test]
+    fn status_view_json_round_trips() {
+        let original = StatusView {
+            trainer: "RED".to_string(),
+            playtime: Playtime {
+                hours: 24,
+                minutes: 12,
+            },
+            checksum_ok: true,
+            party: vec![PartyMemberView {
+                slot: 0,
+                species: "PIKACHU".to_string(),
+                nickname: Some("SPARKY".to_string()),
+                level: 50,
+                hp: 100,
+                max_hp: 100,
+                fainted: false,
+                atk: 60,
+                def: 55,
+                spd: 70,
+                spc: 65,
+                status: vec![Condition::Sleep { turns: 3 }],
+                moves: vec![MoveView {
+                    name: "THUNDERBOLT".to_string(),
+                    pp: 15,
+                    pp_ups: 2,
+                    slot: 0,
+                }],
+            }],
+            last_change: "2026-07-17T14-30-00.000Z".to_string(),
+            snapshot: Some("snapshots/2026-07-17T14-30-00.000Z.sav".to_string()),
+        };
+
+        let json = serde_json::to_string(&original).expect("serialize StatusView");
+        let parsed: StatusView = serde_json::from_str(&json).expect("deserialize StatusView");
+
+        assert_eq!(original, parsed);
     }
 }

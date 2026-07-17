@@ -8,3 +8,6 @@ license.workspace = true
 pokegen1 = { path = "../pokegen1" }
 serde = { workspace = true }
 anyhow = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
