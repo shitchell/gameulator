@@ -64,8 +64,11 @@ pub fn process_save(
     }
 
     let incoming = save.playtime.hours as u32 * 60 + save.playtime.minutes as u32;
-    let latest = snapshot::latest_snapshot_playtime(&cfg.snapshots_dir)?;
-    let regression = crate::regression::check(incoming, latest);
+    // Baseline is the HIGH-WATER mark (max playtime across ALL snapshots), not the
+    // newest snapshot — so ANY save behind the furthest-progressed state alarms,
+    // even after a stale device has already written a low-playtime snapshot.
+    let baseline = snapshot::max_snapshot_playtime(&cfg.snapshots_dir)?;
+    let regression = crate::regression::check(incoming, baseline);
 
     // Snapshot is ALWAYS written on the valid path — even on a Regression;
     // keep-all, alarm-not-delete. The caller decides how loudly to warn.
@@ -241,6 +244,85 @@ mod tests {
             count_savs(&cfg.snapshots_dir),
             2,
             "both snapshots must be kept (stale one is NOT deleted)"
+        );
+    }
+
+    #[test]
+    fn baseline_is_high_water_mark_so_second_stale_save_still_alarms() {
+        // The I1 regression scenario: after a stale device writes a low-playtime
+        // snapshot, a further save STILL behind the furthest-progressed state must
+        // ALSO alarm. The baseline is the high-water mark (1200), not the newest
+        // snapshot — so the guard does NOT go silent once the baseline regresses.
+        let dir = tempfile::tempdir().unwrap();
+        let cfg = cfg(dir.path());
+        let game = app::game_data(app::GameId::YellowLegacy);
+
+        // 1. 20h (1200 min) — the furthest-progressed state. Accepted.
+        let outcome = process_save(
+            &cfg,
+            game.as_ref(),
+            &valid_save_bytes(20, 0),
+            "2026-01-01T00-00-00.000Z",
+        )
+        .unwrap();
+        match outcome {
+            Outcome::Applied { regression, .. } => {
+                assert_eq!(regression, RegressionCheck::Accept);
+            }
+            other => panic!("expected Applied/Accept, got {other:?}"),
+        }
+
+        // 2. 11h (660 min) — a stale device, behind 1200 → regression vs 1200.
+        let outcome = process_save(
+            &cfg,
+            game.as_ref(),
+            &valid_save_bytes(11, 0),
+            "2026-02-01T00-00-00.000Z",
+        )
+        .unwrap();
+        match outcome {
+            Outcome::Applied { regression, .. } => {
+                assert_eq!(
+                    regression,
+                    RegressionCheck::Regression {
+                        incoming: 660,
+                        latest: 1200,
+                    }
+                );
+            }
+            other => panic!("expected Applied/Regression, got {other:?}"),
+        }
+
+        // 3. 12h (720 min) — STILL behind the 1200 high-water mark. This MUST
+        //    also alarm with latest == 1200. Before the fix, the baseline had
+        //    regressed to 660 (the newest snapshot), so 720 would wrongly Accept.
+        let outcome = process_save(
+            &cfg,
+            game.as_ref(),
+            &valid_save_bytes(12, 0),
+            "2026-03-01T00-00-00.000Z",
+        )
+        .unwrap();
+        match outcome {
+            Outcome::Applied { regression, .. } => {
+                assert_eq!(
+                    regression,
+                    RegressionCheck::Regression {
+                        incoming: 720,
+                        latest: 1200,
+                    },
+                    "720 is still behind the 1200 high-water mark — the baseline \
+                     must NOT have regressed to 660"
+                );
+            }
+            other => panic!("expected Applied/Regression, got {other:?}"),
+        }
+
+        // All three snapshots kept — keep-all.
+        assert_eq!(
+            count_savs(&cfg.snapshots_dir),
+            3,
+            "all three snapshots must be kept (keep-all)"
         );
     }
 }

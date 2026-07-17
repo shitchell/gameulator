@@ -9,7 +9,10 @@
 //! fields) live OUTSIDE this crate — `core` stays free of lookup tables.
 //!
 //! The lower-level [`core`] modules remain public so downstream crates (e.g. the
-//! sync watcher) can reach fns like [`core::checksum::verify_checksum`].
+//! sync watcher) can reach fns like [`core::checksum::compute_checksum`]. Save
+//! validation flows through [`parse_save`], which sets `checksum_ok` (via the
+//! internal [`core::checksum::verify_checksum`]); the sync watcher reads that flag
+//! and calls [`core::checksum::compute_checksum`] to build the mismatch message.
 
 pub mod core;
 pub mod games;

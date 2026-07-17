@@ -28,34 +28,38 @@ pub fn stamp_now() -> String {
         .to_string()
 }
 
-/// Total playtime (in minutes) of the most-recent snapshot in `dir`, or `None`
-/// if there are no snapshots. Snapshots are named with `stamp_now()`'s
-/// fixed-width ISO stamp, so the lexicographically-largest `*.sav` filename is
-/// the newest — no timestamp parsing needed. Used by the regression check to
-/// decide whether an incoming save is behind the latest one we've seen.
-pub fn latest_snapshot_playtime(dir: &Path) -> anyhow::Result<Option<u32>> {
+/// The HIGH-WATER-MARK playtime (minutes) across ALL snapshots in `dir`, or
+/// `None` if there are none. This is the regression baseline: an incoming save
+/// behind the furthest-progressed snapshot is a stale-device clobber, so we
+/// compare against the MAX playtime ever snapshotted — NOT merely the newest by
+/// timestamp (a stale save writes a low-playtime *newest* snapshot; comparing to
+/// the newest would let the baseline regress and silence the alarm).
+///
+/// Cost is O(N-snapshots) parses per incoming save — acceptable at save cadence
+/// with keep-all for now; a cached high-water file or snapshot pruning (deferred)
+/// is the future optimization if N grows large.
+pub fn max_snapshot_playtime(dir: &Path) -> anyhow::Result<Option<u32>> {
     // Missing dir (or otherwise unreadable) → no snapshots yet, which is normal.
     let Ok(entries) = std::fs::read_dir(dir) else {
         return Ok(None);
     };
 
-    let newest = entries
+    // Parse every *.sav and take the MAX playtime. `filter_map` skips a single
+    // unreadable/unparseable snapshot rather than aborting the whole max — these
+    // are files we wrote, so they should parse, but one bad file must not silence
+    // the guard. Returns `None` only when there are no parseable snapshots.
+    let max = entries
         .filter_map(Result::ok)
         .map(|e| e.path())
         .filter(|p| p.extension().is_some_and(|ext| ext == "sav"))
-        .max_by(|a, b| a.file_name().cmp(&b.file_name()));
+        .filter_map(|path| {
+            let bytes = std::fs::read(&path).ok()?;
+            let save = pokegen1::parse_save(bytes).ok()?;
+            Some(save.playtime.hours as u32 * 60 + save.playtime.minutes as u32)
+        })
+        .max();
 
-    let Some(path) = newest else {
-        return Ok(None);
-    };
-
-    let bytes =
-        std::fs::read(&path).with_context(|| format!("reading snapshot {}", path.display()))?;
-    let save = pokegen1::parse_save(bytes)
-        .with_context(|| format!("parsing snapshot {}", path.display()))?;
-    Ok(Some(
-        save.playtime.hours as u32 * 60 + save.playtime.minutes as u32,
-    ))
+    Ok(max)
 }
 
 #[cfg(test)]
@@ -83,45 +87,49 @@ mod tests {
     }
 
     #[test]
-    fn latest_snapshot_playtime_picks_newest_by_name() {
+    fn max_snapshot_playtime_picks_max_not_newest_by_name() {
         let dir = tempfile::tempdir().unwrap();
-        // Written oldest-first, but the June one is the lexicographically-largest
-        // NAME — so it must win regardless of write order or its larger playtime.
+        // The older-by-NAME snapshot has the LARGER playtime (1200 min); the
+        // newer-by-NAME has the SMALLER playtime (600 min). The high-water mark
+        // must be 1200 — NOT 600 (the newest by name). This is the crux of the
+        // I1 fix: a stale device writing a low-playtime *newest* snapshot must
+        // NOT drop the regression baseline.
         write_snapshot(
             dir.path(),
-            &crate::test_support::valid_save_bytes(10, 0),
+            &crate::test_support::valid_save_bytes(20, 0),
             "2026-01-01T00-00-00.000Z",
         )
         .unwrap();
         write_snapshot(
             dir.path(),
-            &crate::test_support::valid_save_bytes(20, 30),
+            &crate::test_support::valid_save_bytes(10, 0),
             "2026-06-01T00-00-00.000Z",
         )
         .unwrap();
 
         assert_eq!(
-            latest_snapshot_playtime(dir.path()).unwrap(),
-            Some(20 * 60 + 30)
+            max_snapshot_playtime(dir.path()).unwrap(),
+            Some(20 * 60),
+            "must return the MAX playtime (1200), not the newest-by-name (600)"
         );
     }
 
     #[test]
-    fn latest_snapshot_playtime_empty_dir_is_none() {
+    fn max_snapshot_playtime_empty_dir_is_none() {
         let dir = tempfile::tempdir().unwrap();
-        assert_eq!(latest_snapshot_playtime(dir.path()).unwrap(), None);
+        assert_eq!(max_snapshot_playtime(dir.path()).unwrap(), None);
     }
 
     #[test]
-    fn latest_snapshot_playtime_missing_dir_is_none() {
+    fn max_snapshot_playtime_missing_dir_is_none() {
         let dir = tempfile::tempdir().unwrap();
         let missing = dir.path().join("does-not-exist");
         assert!(!missing.exists());
-        assert_eq!(latest_snapshot_playtime(&missing).unwrap(), None);
+        assert_eq!(max_snapshot_playtime(&missing).unwrap(), None);
     }
 
     #[test]
-    fn latest_snapshot_playtime_ignores_non_sav_files() {
+    fn max_snapshot_playtime_ignores_non_sav_files() {
         let dir = tempfile::tempdir().unwrap();
         write_snapshot(
             dir.path(),
@@ -133,7 +141,7 @@ mod tests {
         std::fs::write(dir.path().join("zzz-notes.txt"), b"not a save").unwrap();
 
         assert_eq!(
-            latest_snapshot_playtime(dir.path()).unwrap(),
+            max_snapshot_playtime(dir.path()).unwrap(),
             Some(5 * 60 + 15)
         );
     }
