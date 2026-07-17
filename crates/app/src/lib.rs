@@ -555,4 +555,33 @@ mod tests {
 
         assert_eq!(original, parsed);
     }
+
+    /// The serde edge cases the web frontend will actually hit: a `None` snapshot
+    /// (JSON `null` -> `None`), an empty party, and a UNIT `Condition` variant
+    /// (`{"kind":"poison"}` — the internally-tagged unit-variant deserialize path,
+    /// a classic serde footgun distinct from the struct-variant `Sleep`).
+    #[test]
+    fn status_view_json_round_trips_none_snapshot_empty_party_and_unit_condition() {
+        let empty = StatusView {
+            trainer: "RED".to_string(),
+            playtime: Playtime {
+                hours: 0,
+                minutes: 0,
+            },
+            checksum_ok: false,
+            party: vec![],
+            last_change: "2026-07-17T00-00-00.000Z".to_string(),
+            snapshot: None,
+        };
+        let parsed: StatusView =
+            serde_json::from_str(&serde_json::to_string(&empty).unwrap()).unwrap();
+        assert_eq!(empty, parsed);
+        assert_eq!(parsed.snapshot, None);
+
+        // A unit Condition variant round-trips through the `kind`-tagged form.
+        let poisoned = Condition::Poison;
+        let c: Condition =
+            serde_json::from_str(&serde_json::to_string(&poisoned).unwrap()).unwrap();
+        assert_eq!(poisoned, c);
+    }
 }

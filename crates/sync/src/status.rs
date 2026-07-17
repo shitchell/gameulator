@@ -2,7 +2,7 @@
 //!
 //! After each accepted save the pipeline (Task 7) writes a `status.json`
 //! summarizing the parsed save plus change metadata. This is the file the
-//! Milestone-3 web dashboard reads (its WebSocket subscribes to changes). The
+//! Milestone-3 web dashboard polls (it re-fetches this file every ~2s). The
 //! writer reuses the `app` controller (`save_info` + `party_summary`) so the
 //! trainer/party/playtime rendering lives in ONE place — no logic duplicated
 //! here.
