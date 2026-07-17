@@ -1,0 +1,29 @@
+[package]
+name = "web-server"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+
+# The crate is named `web-server`, but the shipped binary is `gameulator-web`.
+[[bin]]
+name = "gameulator-web"
+path = "src/main.rs"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+axum = { workspace = true }
+tokio = { workspace = true }
+tower-http = { workspace = true }
+anyhow = { workspace = true }
+clap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"
+# `oneshot` for driving the router in handler tests (a later task).
+tower = { version = "0.5", features = ["util"] }
+# Reading response bodies in tests.
+http-body-util = "0.1"
