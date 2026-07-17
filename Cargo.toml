@@ -1,6 +1,12 @@
 [workspace]
 resolver = "2"
-members = ["crates/pokegen1", "crates/app", "crates/cli", "crates/sync", "crates/web-server", "crates/xtask"]
+members = ["crates/pokegen1", "crates/app", "crates/cli", "crates/sync", "crates/web-server", "crates/xtask", "crates/web"]
+
+# `crates/web` targets wasm32-unknown-unknown (Leptos CSR) and cannot be built
+# natively. Excluding it from default-members means bare `cargo build`/`cargo test`
+# skip it. Native verification: `cargo test --workspace --exclude web`.
+# Frontend verification: wasm target + `trunk build` (run from crates/web).
+default-members = ["crates/pokegen1", "crates/app", "crates/cli", "crates/sync", "crates/web-server", "crates/xtask"]
 
 [workspace.package]
 edition = "2021"
