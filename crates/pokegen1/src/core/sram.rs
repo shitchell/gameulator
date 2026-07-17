@@ -24,6 +24,10 @@ pub const PLAYTIME_HOURS: usize = 0x2CED;
 pub const PLAYTIME_MINUTES: usize = 0x2CEF;
 /// Number of Pokémon in the party (1 byte).
 pub const PARTY_COUNT: usize = 0x2F2C;
+/// Party species-id list (`count` bytes, then a `0xFF` terminator).
+/// Immediately follows [`PARTY_COUNT`]; given its own named home per the
+/// single-offset-map principle.
+pub const PARTY_SPECIES: usize = 0x2F2D;
 /// Start of the 6 x 44-byte party structs.
 pub const PARTY_DATA: usize = 0x2F34;
 /// Original-trainer names, 11 bytes each.
