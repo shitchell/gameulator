@@ -12,6 +12,7 @@
 //! sync watcher) can reach fns like [`core::checksum::verify_checksum`].
 
 pub mod core;
+pub mod games;
 
 pub use core::data::{GameData, ItemTable, MoveTable, SpeciesTable};
 pub use core::error::ParseError;
@@ -19,3 +20,4 @@ pub use core::header::Playtime;
 pub use core::items::ItemStack;
 pub use core::pokemon::{MoveSlot, Pokemon, Status};
 pub use core::save::{parse_save, Save};
+pub use games::yellow_legacy::YellowLegacy;
