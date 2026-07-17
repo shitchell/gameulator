@@ -12,8 +12,9 @@ use std::path::Path;
 use anyhow::Context;
 use serde::Serialize;
 
-use app::PartyMemberView;
-use pokegen1::{GameData, Playtime, Save};
+// All types come from `app` (which re-exports the pokegen1 ones its API needs),
+// so this seam depends only on the controller boundary.
+use app::{GameData, PartyMemberView, Playtime, Save};
 
 /// The parsed summary written to `status.json` after each accepted save. This is
 /// the seam the Milestone-3 web view reads/subscribes to. Serialize-only for now
@@ -50,8 +51,15 @@ pub fn write_status(
         snapshot: snapshot.map(|p| p.display().to_string()),
     };
     let json = serde_json::to_string_pretty(&status)?;
-    std::fs::write(path, json)
-        .with_context(|| format!("writing status.json to {}", path.display()))?;
+    // Write atomically (temp + rename) so the M3 web view, which polls this file,
+    // never sees a torn/partial read mid-write. rename is atomic on the same fs.
+    let mut tmp = path.as_os_str().to_owned();
+    tmp.push(".tmp");
+    let tmp = std::path::PathBuf::from(tmp);
+    std::fs::write(&tmp, json)
+        .with_context(|| format!("writing status.json temp {}", tmp.display()))?;
+    std::fs::rename(&tmp, path)
+        .with_context(|| format!("renaming status.json into place at {}", path.display()))?;
     Ok(())
 }
 

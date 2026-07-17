@@ -6,7 +6,11 @@ use std::path::Path;
 use anyhow::Context;
 use serde::Serialize;
 
-use pokegen1::{GameData, ItemStack, Playtime, Pokemon, Save, Status};
+// Re-export the pokegen1 types this crate's PUBLIC API references, so callers
+// (cli, sync, web) depend only on `app` and never reach into pokegen1 to name a
+// type an `app` signature requires.
+pub use pokegen1::{GameData, ItemStack, Playtime, Save};
+use pokegen1::{Pokemon, Status};
 
 /// The set of supported games. Add variants as overlays land (e.g. `Blue`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
