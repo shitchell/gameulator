@@ -78,4 +78,21 @@ mod tests {
         let bytes: Vec<u8> = (0x80u8..=0x99).collect();
         assert_eq!(decode_string(&bytes), "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
     }
+
+    #[test]
+    fn empty_slice_is_empty() {
+        assert_eq!(decode_string(&[]), "");
+    }
+
+    #[test]
+    fn all_unknown_bytes_is_empty() {
+        // Bytes not in the charmap are skipped (matches Python CH.get(c, "")).
+        assert_eq!(decode_string(&[0x01, 0x02, 0xAB]), "");
+    }
+
+    #[test]
+    fn no_terminator_decodes_full_slice() {
+        // Corrupt/unterminated buffer must decode the run without panicking.
+        assert_eq!(decode_string(&[0x80, 0x81, 0x82]), "ABC");
+    }
 }
