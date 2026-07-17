@@ -13,6 +13,7 @@
 
 pub mod core;
 
+pub use core::data::{GameData, ItemTable, MoveTable, SpeciesTable};
 pub use core::error::ParseError;
 pub use core::header::Playtime;
 pub use core::items::ItemStack;
