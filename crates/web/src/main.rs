@@ -1,7 +1,8 @@
-use std::time::Duration;
-
 use gloo_net::http::Request;
 use leptos::*;
+
+mod components;
+use components::{InfoHeader, ItemList, PartyCard};
 
 fn main() {
     console_error_panic_hook::set_once();
@@ -64,51 +65,74 @@ async fn fetch_poll_ms() -> u64 {
         .unwrap_or(DEFAULT_POLL_MS)
 }
 
-/// Root component — fetches `/api/status`, renders loading/empty/error/loaded,
-/// and re-fetches on the `poll_ms` interval so the page updates live as `sync`
-/// rewrites `status.json`.
+/// Root component — polls `/api/status` on a self-rescheduling loop and renders
+/// the dashboard from the last successful load, so a transient error never
+/// blanks a working page.
+///
+/// Two signals cooperate:
+/// - `status` is the CURRENT fetch outcome (used for the loading/empty/error
+///   states and the non-destructive error banner).
+/// - `last_good` holds the most recent `Loaded` [`app::StatusView`] so the full
+///   dashboard keeps rendering across transient errors.
+///
+/// The poll is a `spawn_local` loop that awaits each fetch before scheduling the
+/// next `TimeoutFuture`, so fetches can never overlap and no timer is leaked.
 #[component]
 fn Dashboard() -> impl IntoView {
     let (status, set_status) = create_signal(Status::Loading);
+    let (last_good, set_last_good) = create_signal::<Option<app::StatusView>>(None);
 
-    // Immediate first fetch (don't wait a full interval).
-    spawn_local(async move {
-        set_status.set(fetch_status().await);
-    });
-
-    // Read poll_ms once, then start a repeating timer that re-fetches status.
     spawn_local(async move {
         let poll_ms = fetch_poll_ms().await;
-        set_interval(
-            move || {
-                spawn_local(async move {
-                    set_status.set(fetch_status().await);
-                });
-            },
-            Duration::from_millis(poll_ms),
-        );
+        loop {
+            let s = fetch_status().await;
+            // Keep-last-good: a successful load updates BOTH signals so the
+            // dashboard survives later transient errors.
+            if let Status::Loaded(sv) = &s {
+                set_last_good.set(Some(sv.clone()));
+            }
+            set_status.set(s);
+            gloo_timers::future::TimeoutFuture::new(poll_ms as u32).await;
+        }
     });
 
-    move || match status.get() {
-        Status::Loading => view! { <p class="state">"Loading…"</p> }.into_view(),
-        Status::Empty => view! {
-            <p class="state">"Waiting for a save… (start gameulator-sync and save in-game)"</p>
+    move || match last_good.get() {
+        // We have good data: render the full dashboard, and overlay a small
+        // non-destructive banner if the CURRENT fetch is an error.
+        Some(sv) => {
+            let banner = match status.get() {
+                Status::Error(e) => view! { <div class="error-banner">"⚠ " {e}</div> }.into_view(),
+                _ => ().into_view(),
+            };
+            view! {
+                <h1>"Gameulator"</h1>
+                {banner}
+                <InfoHeader
+                    trainer=sv.trainer.clone()
+                    playtime=sv.playtime.clone()
+                    checksum_ok=sv.checksum_ok
+                />
+                <div class="party-grid">
+                    {sv.party
+                        .iter()
+                        .map(|m| view! { <PartyCard mon=m.clone()/> })
+                        .collect_view()}
+                </div>
+                <ItemList title="Bag".to_string() items=sv.bag.clone()/>
+                <ItemList title="PC".to_string() items=sv.pc.clone()/>
+            }
+            .into_view()
         }
-        .into_view(),
-        Status::Error(e) => view! { <p class="state error">"Error: " {e}</p> }.into_view(),
-        Status::Loaded(sv) => view! {
-            <h1>"Gameulator"</h1>
-            <p>
-                "Trainer: " {sv.trainer} " — " {sv.party.len()} " Pokémon — "
-                {sv.playtime.hours} "h " {sv.playtime.minutes} "m"
-            </p>
-            <ul>
-                {sv.party
-                    .iter()
-                    .map(|m| view! { <li>{m.species.clone()} " Lv" {m.level}</li> })
-                    .collect_view()}
-            </ul>
-        }
-        .into_view(),
+        // No good data yet: show the plain state line for the current outcome.
+        None => match status.get() {
+            Status::Loading => view! { <p class="state">"Loading…"</p> }.into_view(),
+            Status::Empty => view! {
+                <p class="state">"Waiting for a save… (start gameulator-sync and save in-game)"</p>
+            }
+            .into_view(),
+            Status::Error(e) => view! { <p class="state error">"Error: " {e}</p> }.into_view(),
+            // Loaded but last_good not yet set (same tick) — treat as loading.
+            Status::Loaded(_) => view! { <p class="state">"Loading…"</p> }.into_view(),
+        },
     }
 }

@@ -32,6 +32,8 @@ pub fn write_status(
         playtime: info.playtime,
         checksum_ok: info.checksum_ok,
         party: app::party_summary(save, game),
+        bag: app::items_view(&save.bag, game),
+        pc: app::items_view(&save.pc, game),
         last_change: stamp.to_string(),
         snapshot: snapshot.map(|p| p.display().to_string()),
     };
@@ -81,6 +83,10 @@ mod tests {
         let party = v["party"].as_array().expect("party is an array");
         assert!(!party.is_empty(), "party should be non-empty");
         assert_eq!(party[0]["species"], "MEWTWO");
+
+        // bag/pc are part of the contract — present as arrays.
+        assert!(v["bag"].is_array(), "bag should be present as an array");
+        assert!(v["pc"].is_array(), "pc should be present as an array");
 
         assert_eq!(v["last_change"], "2026-07-17T14-30-00.000Z");
         assert_eq!(v["snapshot"], snap_path.display().to_string());

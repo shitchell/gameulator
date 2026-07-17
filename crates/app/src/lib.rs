@@ -100,6 +100,8 @@ pub struct StatusView {
     pub playtime: Playtime,
     pub checksum_ok: bool,
     pub party: Vec<PartyMemberView>,
+    pub bag: Vec<ItemView>,
+    pub pc: Vec<ItemView>,
     /// The snapshot timestamp for this change.
     pub last_change: String,
     /// Path to the snapshot written for this change, if any.
@@ -546,6 +548,11 @@ mod tests {
                     slot: 0,
                 }],
             }],
+            bag: vec![ItemView {
+                name: "MASTER BALL".to_string(),
+                quantity: 5,
+            }],
+            pc: vec![],
             last_change: "2026-07-17T14-30-00.000Z".to_string(),
             snapshot: Some("snapshots/2026-07-17T14-30-00.000Z.sav".to_string()),
         };
@@ -554,6 +561,9 @@ mod tests {
         let parsed: StatusView = serde_json::from_str(&json).expect("deserialize StatusView");
 
         assert_eq!(original, parsed);
+        // Exercise the bag Deserialize path explicitly.
+        assert_eq!(parsed.bag.len(), 1);
+        assert_eq!(parsed.bag[0].name, "MASTER BALL");
     }
 
     /// The serde edge cases the web frontend will actually hit: a `None` snapshot
@@ -570,6 +580,8 @@ mod tests {
             },
             checksum_ok: false,
             party: vec![],
+            bag: vec![],
+            pc: vec![],
             last_change: "2026-07-17T00-00-00.000Z".to_string(),
             snapshot: None,
         };
