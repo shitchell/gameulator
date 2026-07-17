@@ -5,6 +5,7 @@
 /// Whether an incoming save's playtime is consistent with the latest snapshot,
 /// or is a regression (a stale device overwrote a newer save).
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[must_use = "a Regression result must be surfaced as an alarm, not dropped"]
 pub enum RegressionCheck {
     /// Incoming playtime is >= the latest snapshot (or there is no snapshot yet).
     Accept,
