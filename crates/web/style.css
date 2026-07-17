@@ -32,6 +32,10 @@
   --text-muted: #667085;
   /* text drawn ON a colored badge/pill (accent, hp, status, ok/bad) */
   --on-accent: #ffffff;
+  /* fixed dark ink for bright/warm pills (e.g. amber paralyze) that are light in
+     BOTH themes — deliberately NOT overridden in the dark block, so it never
+     inverts to near-white on yellow. */
+  --on-warm: #1c2230;
 
   /* -- Accent -- */
   --accent: #3b6fe0;
@@ -297,8 +301,9 @@ h1 {
 
 .st-paralyze {
   background: var(--st-paralyze);
-  /* amber pill reads better with dark text */
-  color: var(--text);
+  /* amber pill is bright in both themes → fixed dark ink (not the inverting
+     --text, which would go near-white on yellow in dark mode). */
+  color: var(--on-warm);
 }
 
 /* ==========================================================================
