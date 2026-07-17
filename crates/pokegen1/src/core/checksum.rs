@@ -16,10 +16,11 @@ use crate::core::sram::{self, SaveData};
 /// Mirrors `SAVCheckSum`: accumulate all bytes into a wrapping `u8`, then
 /// return the ones-complement (`cpl`) of the low byte.
 ///
-/// Exposed `pub(crate)` (beyond [`verify_checksum`]'s boolean gate) so the sync
-/// watcher can log a computed-vs-stored mismatch, and a future save-writer can
-/// recompute the byte to store — both without duplicating this algorithm.
-pub(crate) fn compute_checksum(save: &SaveData) -> u8 {
+/// Exposed `pub` (beyond [`verify_checksum`]'s boolean gate) so the sync watcher
+/// can log a computed-vs-stored mismatch, and a future save-writer can recompute
+/// the byte to store — both without duplicating this algorithm. (Exposing the
+/// computed byte leaks nothing that [`verify_checksum`] doesn't already compare.)
+pub fn compute_checksum(save: &SaveData) -> u8 {
     let mut sum: u8 = 0;
     for offset in sram::MAIN_DATA_START..=sram::MAIN_DATA_END {
         sum = sum.wrapping_add(save.read_u8(offset));

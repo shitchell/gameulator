@@ -1,32 +1,26 @@
 //! Shared `#[cfg(test)]` fixtures for the sync crate's tests.
 //!
-//! pokegen1's `compute_checksum` is `pub(crate)` and unreachable here, so this
-//! helper recomputes the main-data checksum itself using pokegen1's PUBLIC
-//! `core::sram` offset consts. Reused across sync tasks (validation, status.json,
-//! process pipeline, regression) that need a real, checksum-valid save — often
-//! with a specific playtime.
+//! Reused across sync tasks (validation, status.json, process pipeline,
+//! regression) that need a real, checksum-valid save — often with a specific
+//! playtime.
 
-use pokegen1::core::sram;
+use pokegen1::core::checksum::compute_checksum;
+use pokegen1::core::sram::{self, SaveData};
 
 /// Build a minimal VALID Gen-1 save (parses AND passes the checksum) with the
 /// given playtime. Used across sync tests that need a real, checksum-valid save.
 pub(crate) fn valid_save_bytes(hours: u8, minutes: u8) -> Vec<u8> {
     let mut b = vec![0u8; sram::SAVE_LEN];
-    // Minimal parseable party: count 1, one species (131 = MEWTWO) at the struct base.
+    // Minimal parseable party: count 1, one species (131 = MEWTWO). `parse_save`
+    // only gates on party count 1..=6, so this is the true minimum.
     b[sram::PARTY_COUNT] = 1;
     b[sram::PARTY_DATA] = 131; // species id at struct +0x00
-    b[sram::PARTY_DATA + 0x01] = 0x00; // current HP hi (BE); nonzero below
-    b[sram::PARTY_DATA + 0x02] = 0x14; // current HP lo = 20 (not fainted)
-    b[sram::PARTY_DATA + 0x21] = 50; // level at +0x21
     b[sram::PLAYTIME_HOURS] = hours;
     b[sram::PLAYTIME_MINUTES] = minutes;
-    // Compute the main-data checksum LAST (playtime/party are within its range):
-    // sum bytes [MAIN_DATA_START, MAIN_DATA_END] in a wrapping u8, ones-complement.
-    let mut sum: u8 = 0;
-    for &byte in &b[sram::MAIN_DATA_START..=sram::MAIN_DATA_END] {
-        sum = sum.wrapping_add(byte);
-    }
-    b[sram::MAIN_CHECKSUM] = sum ^ 0xFF;
+    // Stamp the main-data checksum LAST (party/playtime are inside its range).
+    // The checksum byte (0x3523) is outside the summed range, so computing over a
+    // clone with it still zero yields the correct value.
+    b[sram::MAIN_CHECKSUM] = compute_checksum(&SaveData::new(b.clone()));
     b
 }
 
