@@ -5,6 +5,11 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+pub mod validate;
+
+#[cfg(test)]
+pub(crate) mod test_support;
+
 /// Paths + tuning the watcher operates on. Tests point these at tempdirs.
 #[derive(Debug, Clone)]
 pub struct Config {
