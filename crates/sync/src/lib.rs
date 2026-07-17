@@ -5,6 +5,7 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+pub mod process;
 pub mod regression;
 pub mod snapshot;
 pub mod status;
