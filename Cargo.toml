@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/pokegen1", "crates/app", "crates/cli"]
+members = ["crates/pokegen1", "crates/app", "crates/cli", "crates/xtask"]
 
 [workspace.package]
 edition = "2021"
