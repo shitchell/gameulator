@@ -29,7 +29,7 @@ pub struct ItemStack {
 /// `start`, returning one [`ItemStack`] per pair.
 ///
 /// Ported from `read_save.py`'s `read_items()`: stops at the `0xFF` terminator,
-/// or after [`MAX_ITEMS`] pairs (the runaway guard) if no terminator is found.
+/// or after `MAX_ITEMS` pairs (the runaway guard) if no terminator is found.
 pub fn read_item_list(save: &SaveData, start: usize) -> Vec<ItemStack> {
     let mut out = Vec::new();
     for i in 0..MAX_ITEMS {

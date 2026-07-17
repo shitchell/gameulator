@@ -38,7 +38,7 @@ pub fn party_species(save: &SaveData) -> Result<Vec<u8>, ParseError> {
 ///
 /// Gates on [`party_count`] (so an invalid count yields
 /// [`ParseError::InvalidPartyCount`]), then parses each 44-byte struct via
-/// [`pokemon::parse_pokemon`] and layers on the nickname from the party
+/// `pokemon::parse_pokemon` and layers on the nickname from the party
 /// nickname region (which lives OUTSIDE the struct, at
 /// [`sram::NICKNAMES`] `+ i * `[`sram::NAME_LEN`]).
 ///

@@ -92,7 +92,7 @@ pub struct Pokemon {
     pub moves: Vec<MoveSlot>,
     pub status: Status,
     /// In-game nickname, decoded from the party nickname region (which lives
-    /// OUTSIDE the 44-byte struct). [`parse_pokemon`] always sets this to
+    /// OUTSIDE the 44-byte struct). `parse_pokemon` always sets this to
     /// `None`; [`crate::core::party::parse_party`] populates it. `None` means
     /// the nickname region was empty.
     pub nickname: Option<String>,
