@@ -1,0 +1,3 @@
+[submodule "vendor/pokemon-yellow-legacy"]
+	path = vendor/pokemon-yellow-legacy
+	url = https://github.com/cRz-Shadows/Pokemon_Yellow_Legacy

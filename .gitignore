@@ -3,4 +3,4 @@
 **/*.gbc
 **/*.sav
 **/*.srm
-/vendor/pokemon-yellow-legacy/
+/vendor/pokemon-yellow-legacy/*
