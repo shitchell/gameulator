@@ -12,8 +12,7 @@ pub fn write_snapshot(dir: &Path, bytes: &[u8], stamp: &str) -> anyhow::Result<P
     std::fs::create_dir_all(dir)
         .with_context(|| format!("creating snapshots dir {}", dir.display()))?;
     let path = dir.join(format!("{stamp}.sav"));
-    std::fs::write(&path, bytes)
-        .with_context(|| format!("writing snapshot {}", path.display()))?;
+    std::fs::write(&path, bytes).with_context(|| format!("writing snapshot {}", path.display()))?;
     Ok(path)
 }
 
@@ -24,7 +23,9 @@ pub fn write_snapshot(dir: &Path, bytes: &[u8], stamp: &str) -> anyhow::Result<P
 /// overwrite). Only the watcher calls this — the pure `write_snapshot` takes the
 /// stamp as a param.
 pub fn stamp_now() -> String {
-    chrono::Utc::now().format("%Y-%m-%dT%H-%M-%S%.3fZ").to_string()
+    chrono::Utc::now()
+        .format("%Y-%m-%dT%H-%M-%S%.3fZ")
+        .to_string()
 }
 
 /// Total playtime (in minutes) of the most-recent snapshot in `dir`, or `None`
@@ -141,7 +142,10 @@ mod tests {
     fn stamp_now_is_path_safe_and_sortable() {
         let stamp = stamp_now();
 
-        assert!(!stamp.contains(':'), "stamp must not contain colons: {stamp}");
+        assert!(
+            !stamp.contains(':'),
+            "stamp must not contain colons: {stamp}"
+        );
         assert!(stamp.ends_with('Z'), "stamp must end with Z: {stamp}");
         // Shape: `YYYY-...` — starts with 4 digits then a dash.
         let bytes = stamp.as_bytes();

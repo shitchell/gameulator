@@ -42,8 +42,8 @@ pub fn run(cfg: Config, game: Box<dyn GameData + Send>) -> anyhow::Result<()> {
         .to_path_buf();
 
     let (tx, rx) = mpsc::channel();
-    let mut debouncer = new_debouncer(cfg.debounce, None, tx)
-        .context("creating filesystem debouncer")?;
+    let mut debouncer =
+        new_debouncer(cfg.debounce, None, tx).context("creating filesystem debouncer")?;
 
     debouncer
         .watcher()

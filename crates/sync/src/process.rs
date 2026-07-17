@@ -103,13 +103,8 @@ mod tests {
         let cfg = cfg(dir.path());
         let game = app::game_data(app::GameId::YellowLegacy);
 
-        let outcome = process_save(
-            &cfg,
-            game.as_ref(),
-            &[0u8; 100],
-            "2026-01-01T00-00-00.000Z",
-        )
-        .unwrap();
+        let outcome =
+            process_save(&cfg, game.as_ref(), &[0u8; 100], "2026-01-01T00-00-00.000Z").unwrap();
 
         match outcome {
             Outcome::Quarantined { reason } => {
@@ -121,7 +116,11 @@ mod tests {
             other => panic!("expected Quarantined, got {other:?}"),
         }
 
-        assert_eq!(count_savs(&cfg.snapshots_dir), 0, "no snapshot must be written");
+        assert_eq!(
+            count_savs(&cfg.snapshots_dir),
+            0,
+            "no snapshot must be written"
+        );
         assert!(!cfg.status_path.exists(), "status.json must not be written");
     }
 
@@ -135,8 +134,8 @@ mod tests {
         // Flip an in-range byte WITHOUT recomputing the checksum → checksum breaks.
         bytes[sram::MAIN_DATA_START + 100] ^= 0xFF;
 
-        let outcome = process_save(&cfg, game.as_ref(), &bytes, "2026-01-01T00-00-00.000Z")
-            .unwrap();
+        let outcome =
+            process_save(&cfg, game.as_ref(), &bytes, "2026-01-01T00-00-00.000Z").unwrap();
 
         match outcome {
             Outcome::Quarantined { reason } => {
@@ -148,7 +147,11 @@ mod tests {
             other => panic!("expected Quarantined, got {other:?}"),
         }
 
-        assert_eq!(count_savs(&cfg.snapshots_dir), 0, "no snapshot must be written");
+        assert_eq!(
+            count_savs(&cfg.snapshots_dir),
+            0,
+            "no snapshot must be written"
+        );
         assert!(!cfg.status_path.exists(), "status.json must not be written");
     }
 
@@ -177,7 +180,11 @@ mod tests {
             other => panic!("expected Applied, got {other:?}"),
         }
 
-        assert_eq!(count_savs(&cfg.snapshots_dir), 1, "a snapshot must be written");
+        assert_eq!(
+            count_savs(&cfg.snapshots_dir),
+            1,
+            "a snapshot must be written"
+        );
         assert!(cfg.status_path.exists(), "status.json must be written");
 
         let text = std::fs::read_to_string(&cfg.status_path).unwrap();
@@ -221,7 +228,10 @@ mod tests {
                         latest: 1200,
                     }
                 );
-                assert!(snapshot.exists(), "the stale snapshot must still be written");
+                assert!(
+                    snapshot.exists(),
+                    "the stale snapshot must still be written"
+                );
             }
             other => panic!("expected Applied, got {other:?}"),
         }
