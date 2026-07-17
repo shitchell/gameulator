@@ -20,15 +20,20 @@ fn condition_label(cond: &Condition) -> String {
 
 /// Build the comma-joined status label string for a party member.
 ///
-/// Maps each [`Condition`] to a label and folds in `"FAINTED"` when the member
-/// has fainted (mirrors read_save.py showing FAINTED). Returns an empty string
-/// when the member is healthy and un-fainted.
+/// A fainted member renders as just `"FAINTED"`, discarding any status bits —
+/// matching read_save.py (`if cur==0: conds=["FAINTED"]`), and reflecting that a
+/// fainted mon's stored status is not meaningful. Otherwise maps each
+/// [`Condition`] to a label. Returns an empty string when healthy and un-fainted.
 pub fn status_labels(member: &PartyMemberView) -> String {
-    let mut labels: Vec<String> = member.status.iter().map(condition_label).collect();
     if member.fainted {
-        labels.push("FAINTED".to_string());
+        return "FAINTED".to_string();
     }
-    labels.join(",")
+    member
+        .status
+        .iter()
+        .map(condition_label)
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 /// The species/nickname display string: `"NICK (SPECIES)"` if a (distinct)
@@ -100,13 +105,21 @@ pub fn party_member_compact(member: &PartyMemberView) -> String {
     )
 }
 
-/// Render the full party (default view): blocks separated by blank lines.
+/// Render the full party (default view): a count header, then blocks separated
+/// by blank lines. (Trainer/playtime live in the `info` subcommand — the CLI
+/// splits read_save.py's monolithic dump into party/bag/pc/info.)
 pub fn party(members: &[PartyMemberView]) -> String {
-    members
+    let header = format!("=== PARTY ({}) ===", members.len());
+    let blocks = members
         .iter()
         .map(party_member_block)
         .collect::<Vec<_>>()
-        .join("\n\n")
+        .join("\n\n");
+    if blocks.is_empty() {
+        header
+    } else {
+        format!("{header}\n{blocks}")
+    }
 }
 
 /// Render the full party in compact mode: one line per member.
@@ -206,11 +219,20 @@ mod tests {
     }
 
     #[test]
-    fn label_conditions_and_fainted_joined_with_comma() {
+    fn label_fainted_replaces_conditions() {
+        // A fainted mon shows only FAINTED, discarding status bits (read_save.py
+        // parity: `if cur==0: conds=["FAINTED"]`).
         let mut m = member();
         m.status = vec![Condition::Poison, Condition::Burn];
         m.fainted = true;
-        assert_eq!(status_labels(&m), "POISON,BURN,FAINTED");
+        assert_eq!(status_labels(&m), "FAINTED");
+    }
+
+    #[test]
+    fn label_multiple_conditions_joined_with_comma() {
+        let mut m = member();
+        m.status = vec![Condition::Poison, Condition::Burn];
+        assert_eq!(status_labels(&m), "POISON,BURN");
     }
 
     #[test]
