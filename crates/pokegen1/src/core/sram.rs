@@ -43,6 +43,22 @@ pub const PARTY_STRUCT_LEN: usize = 44;
 /// Fixed width of name/nickname/OT fields.
 pub const NAME_LEN: usize = 11;
 
+// ---- Main-data checksum (Yellow Legacy V1.0.10, disassembly-confirmed) ----
+// `SAVCheckSum` (engine/menus/save.asm) sums the bytes of `sGameData` and
+// stores the ones-complement at `sMainDataCheckSum`. The built symbol file
+// (pokeyellow.sym) pins `sGameData`=01:a598 and `sGameDataEnd`=`sMainDataCheckSum`=01:b523.
+// Bank-1 .sav offset = 0x2000 + (addr - 0xa000), giving the file offsets below.
+
+/// First byte covered by the main-data checksum (= [`NAME`] / `sGameData`).
+pub const MAIN_DATA_START: usize = 0x2598;
+/// Last byte (inclusive) covered by the main-data checksum. The disassembly
+/// sums the half-open range `[sGameData, sGameDataEnd)`; `sGameDataEnd`
+/// (`0x3523`) is the checksum byte itself, so the summed range ends at `0x3522`.
+pub const MAIN_DATA_END: usize = 0x3522;
+/// Offset of the stored main-data checksum byte (`sMainDataCheckSum`),
+/// immediately after [`MAIN_DATA_END`].
+pub const MAIN_CHECKSUM: usize = 0x3523;
+
 /// Typed byte-accessor over a raw Gen-1 SRAM save buffer.
 ///
 /// Accessors index directly into the buffer. Precondition: callers pass

@@ -1,6 +1,8 @@
 //! Core Gen-1 model logic (the Model layer).
 
+pub mod checksum;
 pub mod error;
+pub mod header;
 pub mod items;
 pub mod party;
 pub mod pokemon;
