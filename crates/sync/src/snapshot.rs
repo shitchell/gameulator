@@ -19,8 +19,10 @@ pub fn write_snapshot(dir: &Path, bytes: &[u8], stamp: &str) -> anyhow::Result<P
 
 /// A filesystem-safe, chronologically-sortable UTC timestamp for snapshot names,
 /// e.g. `2026-07-17T14-30-00.123Z`. NO colons (not path-safe on all filesystems);
-/// millisecond precision so two saves in the same second don't collide. Only the
-/// watcher calls this — the pure `write_snapshot` takes the stamp as a param.
+/// millisecond precision makes a same-name collision effectively impossible at
+/// save cadence (uniqueness is not *enforced* — two writes in the same ms would
+/// overwrite). Only the watcher calls this — the pure `write_snapshot` takes the
+/// stamp as a param.
 pub fn stamp_now() -> String {
     chrono::Utc::now().format("%Y-%m-%dT%H-%M-%S%.3fZ").to_string()
 }
