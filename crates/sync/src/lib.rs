@@ -62,5 +62,23 @@ mod tests {
         assert_eq!(cfg.save_path, seeded);
         assert_eq!(cfg.snapshots_dir, saves_dir.join("snapshots"));
         assert_eq!(cfg.status_path, saves_dir.join("status.json"));
+        assert_eq!(cfg.debounce, Duration::from_secs(2));
+    }
+
+    #[test]
+    fn for_game_dir_empty_dir_falls_back_to_save_sav() {
+        let dir = tempfile::tempdir().unwrap();
+        let cfg = Config::for_game_dir(dir.path());
+        assert_eq!(cfg.save_path, dir.path().join("save.sav"));
+    }
+
+    #[test]
+    fn for_game_dir_picks_lexicographically_first_sav() {
+        // Determinism guard: read_dir order is FS-dependent, so first_sav sorts.
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("b.sav"), b"").unwrap();
+        std::fs::write(dir.path().join("a.sav"), b"").unwrap();
+        let cfg = Config::for_game_dir(dir.path());
+        assert_eq!(cfg.save_path, dir.path().join("a.sav"));
     }
 }
