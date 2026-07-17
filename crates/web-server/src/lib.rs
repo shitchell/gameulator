@@ -46,6 +46,8 @@ pub fn router(cfg: WebConfig) -> Router {
 async fn status_handler(
     axum::extract::State(cfg): axum::extract::State<Arc<WebConfig>>,
 ) -> Response {
+    // Sync read: status.json is tiny and this endpoint is low-QPS (one poll every
+    // ~2s per tab), so blocking the worker here is fine — no spawn_blocking needed.
     match std::fs::read(&cfg.status_path) {
         Ok(bytes) => (
             StatusCode::OK,
@@ -53,12 +55,22 @@ async fn status_handler(
             bytes,
         )
             .into_response(),
-        Err(_) => (
-            StatusCode::OK,
-            [(header::CONTENT_TYPE, "application/json")],
-            r#"{"present":false}"#,
-        )
-            .into_response(),
+        Err(e) => {
+            // A missing file is the normal "watcher hasn't written yet" state —
+            // stay quiet. Any OTHER error (permissions, EIO, a bad path) would
+            // otherwise masquerade as "waiting" forever, so log it — while still
+            // returning the same empty-state so a transient hiccup can't blank the
+            // dashboard.
+            if e.kind() != std::io::ErrorKind::NotFound {
+                eprintln!("[web] reading {} failed: {e}", cfg.status_path.display());
+            }
+            (
+                StatusCode::OK,
+                [(header::CONTENT_TYPE, "application/json")],
+                r#"{"present":false}"#,
+            )
+                .into_response()
+        }
     }
 }
 
