@@ -18,10 +18,20 @@
 //! Only NAME resolution lives here — that is all Milestone-1's CLI needs.
 //! A `TypeChart` trait / `Type` enum (for the future type-coverage feature) are
 //! deliberately **out of scope** and are not defined here.
+//!
+//! # Conventions for extending this seam
+//! - The `id` key is deliberately `u8`, matching the save's byte-width storage
+//!   of species/move/item ids (see the `*_id: u8` fields on the model structs).
+//! - When the overlay later needs richer data (base stats, types, evolutions),
+//!   add a NEW trait (e.g. `BaseStatsTable`) and extend the [`GameData`]
+//!   supertrait list — do NOT add methods to the existing single-purpose traits,
+//!   so name-only consumers aren't forced to depend on stat resolution.
 
-/// Resolve a Gen-1 species id (1-based dex-ish index as stored in the save) to a
-/// name. Unknown ids return `None`. The returned borrow is tied to `&self`, so
-/// both owned-`String` tables and `&'static` stubs satisfy it.
+/// Resolve a Gen-1 **internal** species id (the byte value stored in the save,
+/// which is NOT the Pokédex number — e.g. MEWTWO's internal id is 131 but its
+/// dex number is 150) to a name. Unknown ids return `None`. The returned borrow
+/// is tied to `&self`, so both owned-`String` tables and `&'static` stubs
+/// satisfy it.
 pub trait SpeciesTable {
     fn species_name(&self, id: u8) -> Option<&str>;
 }
