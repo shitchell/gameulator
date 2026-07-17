@@ -6,6 +6,7 @@ pub mod header;
 pub mod items;
 pub mod party;
 pub mod pokemon;
+pub mod save;
 pub mod sram;
 pub mod text;
 

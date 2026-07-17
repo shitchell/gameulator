@@ -12,6 +12,11 @@
 // One conceptual change (a moved SRAM address) = one contiguous edit block.
 // Every offset below has exactly one home here.
 
+/// Total length of a Gen-1 save buffer: a real `.sav`/`.srm` is a 32 KiB
+/// (`0x8000`-byte) raw SRAM dump. `parse_save`'s length gate requires at least
+/// this many bytes before any accessor indexes into the buffer.
+pub const SAVE_LEN: usize = 0x8000;
+
 /// Trainer name (11 bytes).
 pub const NAME: usize = 0x2598;
 /// Bag item list (item,qty pairs, `0xFF`-terminated).

@@ -115,7 +115,12 @@ impl Pokemon {
 /// Precondition: `slot` refers to an occupied party slot within a valid save
 /// buffer (the caller gates on `party_count`). Offsets are ported verbatim from
 /// `read_save.py`'s `extract()`.
-pub fn parse_pokemon(save: &SaveData, slot: usize) -> Pokemon {
+///
+/// Deliberately `pub(crate)`: it is only ever called by
+/// [`crate::core::party::parse_party`], which layers on the nickname (stored
+/// outside the 44-byte struct). Calling it directly would yield a nickname-less
+/// mon — a footgun — so it is not part of the public API.
+pub(crate) fn parse_pokemon(save: &SaveData, slot: usize) -> Pokemon {
     let base = sram::PARTY_DATA + slot * sram::PARTY_STRUCT_LEN;
 
     let hp = save.read_u16_be(base + F_CUR_HP);

@@ -10,4 +10,10 @@ pub enum ParseError {
     /// "is this actually a Gen-1 party save?" sanity check.
     #[error("invalid party count: {0} (expected 1..=6)")]
     InvalidPartyCount(u8),
+
+    /// The save buffer was shorter than a full Gen-1 SRAM dump. Detected by
+    /// `parse_save`'s length gate BEFORE any offset accessor runs, so a
+    /// short/corrupt buffer never panics on a direct index.
+    #[error("save too short: expected at least {expected} bytes, got {got}")]
+    TruncatedSave { expected: usize, got: usize },
 }
