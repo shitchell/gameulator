@@ -35,14 +35,13 @@ pub fn party_species(save: &SaveData) -> Result<Vec<u8>, ParseError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::test_support::{blank_sram, seed};
 
     /// Build a synthetic save buffer with a given party count and species ids.
     fn synthetic_save(count: u8, species: &[u8]) -> SaveData {
-        let mut bytes = vec![0u8; 0x8000];
-        bytes[sram::PARTY_COUNT] = count;
-        for (i, &sp) in species.iter().enumerate() {
-            bytes[sram::PARTY_SPECIES + i] = sp;
-        }
+        let mut bytes = blank_sram();
+        seed(&mut bytes, sram::PARTY_COUNT, &[count]);
+        seed(&mut bytes, sram::PARTY_SPECIES, species);
         SaveData::new(bytes)
     }
 
