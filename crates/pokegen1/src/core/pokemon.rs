@@ -18,10 +18,10 @@ const F_CUR_HP: usize = 0x01; // big-endian u16
 const F_STATUS: usize = 0x04;
 const F_MOVES: usize = 0x08; // 4 x u8 move ids at 0x08..=0x0B
 const F_PP: usize = 0x1D; // 4 x u8 PP bytes at 0x1D..=0x20
-// ⚠️ PARTY LEVEL LIVES AT 0x21, *NOT* 0x03.
-// 0x03 is the BOXED-format level; read_party.py used 0x03 and is WRONG for the
-// party format. read_save.py's `LEVEL_OFF = 0x21` is authoritative here. Reading
-// 0x03 gives a plausible-but-wrong level and is the nastiest gotcha in this task.
+                          // ⚠️ PARTY LEVEL LIVES AT 0x21, *NOT* 0x03.
+                          // 0x03 is the BOXED-format level; read_party.py used 0x03 and is WRONG for the
+                          // party format. read_save.py's `LEVEL_OFF = 0x21` is authoritative here. Reading
+                          // 0x03 gives a plausible-but-wrong level and is the nastiest gotcha in this task.
 const F_LEVEL: usize = 0x21;
 const F_MAX_HP: usize = 0x22; // big-endian u16
 const F_ATK: usize = 0x24; // big-endian u16
@@ -185,7 +185,7 @@ mod tests {
         seed(&mut bytes, base + 0x01, &[0x00, 0xFF]); // current HP = 255 (BE)
         seed(&mut bytes, base + 0x03, &[77]); // DECOY boxed-level: must NOT be read
         seed(&mut bytes, base + 0x04, &[0x40]); // status: PARALYZE only
-        // moves: slot 0 id 85, slot 1 id 0 (empty -> skipped), slots 2/3 ids 57, 92
+                                                // moves: slot 0 id 85, slot 1 id 0 (empty -> skipped), slots 2/3 ids 57, 92
         seed(&mut bytes, base + 0x08, &[85, 0, 57, 92]);
         // PP bytes (one per move slot):
         //   slot0 0xB0 -> pp 0x30=48, pp_ups (0xB0>>6)&3 = 2
@@ -228,9 +228,24 @@ mod tests {
         assert_eq!(
             mon.moves,
             vec![
-                MoveSlot { move_id: 85, pp: 48, pp_ups: 2, slot: 0 },
-                MoveSlot { move_id: 57, pp: 15, pp_ups: 0, slot: 2 },
-                MoveSlot { move_id: 92, pp: 37, pp_ups: 0, slot: 3 },
+                MoveSlot {
+                    move_id: 85,
+                    pp: 48,
+                    pp_ups: 2,
+                    slot: 0
+                },
+                MoveSlot {
+                    move_id: 57,
+                    pp: 15,
+                    pp_ups: 0,
+                    slot: 2
+                },
+                MoveSlot {
+                    move_id: 92,
+                    pp: 37,
+                    pp_ups: 0,
+                    slot: 3
+                },
             ]
         );
     }

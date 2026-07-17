@@ -290,8 +290,18 @@ mod tests {
     fn block_moves_render_current_pp_only() {
         let mut m = member();
         m.moves = vec![
-            MoveView { name: "THUNDERBOLT".to_string(), pp: 15, pp_ups: 3, slot: 0 },
-            MoveView { name: "PSYCHIC".to_string(), pp: 10, pp_ups: 0, slot: 1 },
+            MoveView {
+                name: "THUNDERBOLT".to_string(),
+                pp: 15,
+                pp_ups: 3,
+                slot: 0,
+            },
+            MoveView {
+                name: "PSYCHIC".to_string(),
+                pp: 10,
+                pp_ups: 0,
+                slot: 1,
+            },
         ];
         let block = party_member_block(&m);
         let moves = block.lines().nth(2).unwrap();
@@ -305,15 +315,28 @@ mod tests {
         let mut m = member();
         m.species = "MEWTWO".to_string();
         m.moves = vec![
-            MoveView { name: "PSYCHIC".to_string(), pp: 10, pp_ups: 0, slot: 0 },
-            MoveView { name: "RECOVER".to_string(), pp: 20, pp_ups: 0, slot: 1 },
+            MoveView {
+                name: "PSYCHIC".to_string(),
+                pp: 10,
+                pp_ups: 0,
+                slot: 0,
+            },
+            MoveView {
+                name: "RECOVER".to_string(),
+                pp: 20,
+                pp_ups: 0,
+                slot: 1,
+            },
         ];
         let line = party_member_compact(&m);
         assert_eq!(line.lines().count(), 1);
         assert!(line.contains("MEWTWO"), "got: {line}");
         assert!(line.contains("L70"), "got: {line}");
         assert!(line.contains("100/180"), "got: {line}");
-        assert!(line.contains("PSYCHIC (10) \u{b7} RECOVER (20)"), "got: {line}");
+        assert!(
+            line.contains("PSYCHIC (10) \u{b7} RECOVER (20)"),
+            "got: {line}"
+        );
     }
 
     #[test]
@@ -331,8 +354,14 @@ mod tests {
         let out = items(
             "BAG",
             &[
-                ItemView { name: "POTION".to_string(), quantity: 5 },
-                ItemView { name: "MASTER BALL".to_string(), quantity: 1 },
+                ItemView {
+                    name: "POTION".to_string(),
+                    quantity: 5,
+                },
+                ItemView {
+                    name: "MASTER BALL".to_string(),
+                    quantity: 1,
+                },
             ],
         );
         assert!(out.starts_with("=== BAG (2) ==="), "got: {out}");
@@ -346,7 +375,10 @@ mod tests {
     fn info_renders_checksum_ok() {
         let v = SaveInfoView {
             trainer: "RED".to_string(),
-            playtime: pokegen1::Playtime { hours: 24, minutes: 12 },
+            playtime: pokegen1::Playtime {
+                hours: 24,
+                minutes: 12,
+            },
             checksum_ok: true,
         };
         let out = info(&v);
@@ -359,7 +391,10 @@ mod tests {
     fn info_renders_checksum_bad() {
         let v = SaveInfoView {
             trainer: "RED".to_string(),
-            playtime: pokegen1::Playtime { hours: 1, minutes: 2 },
+            playtime: pokegen1::Playtime {
+                hours: 1,
+                minutes: 2,
+            },
             checksum_ok: false,
         };
         assert!(info(&v).contains("Checksum: BAD"));

@@ -47,6 +47,12 @@ mod tests {
         seed(&mut buf, sram::PLAYTIME_HOURS, &[24]);
         seed(&mut buf, sram::PLAYTIME_MINUTES, &[12]);
         let save = SaveData::new(buf);
-        assert_eq!(playtime(&save), Playtime { hours: 24, minutes: 12 });
+        assert_eq!(
+            playtime(&save),
+            Playtime {
+                hours: 24,
+                minutes: 12
+            }
+        );
     }
 }

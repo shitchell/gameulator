@@ -73,8 +73,14 @@ mod tests {
         assert_eq!(
             bag_items(&save),
             vec![
-                ItemStack { item_id: 2, quantity: 12 },
-                ItemStack { item_id: 40, quantity: 5 },
+                ItemStack {
+                    item_id: 2,
+                    quantity: 12
+                },
+                ItemStack {
+                    item_id: 40,
+                    quantity: 5
+                },
             ]
         );
     }
@@ -89,8 +95,14 @@ mod tests {
         assert_eq!(
             pc_items(&save),
             vec![
-                ItemStack { item_id: 20, quantity: 10 },
-                ItemStack { item_id: 4, quantity: 99 },
+                ItemStack {
+                    item_id: 20,
+                    quantity: 10
+                },
+                ItemStack {
+                    item_id: 4,
+                    quantity: 99
+                },
             ]
         );
     }
@@ -114,7 +126,10 @@ mod tests {
         let save = SaveData::new(bytes);
         assert_eq!(
             bag_items(&save),
-            vec![ItemStack { item_id: 10, quantity: 255 }]
+            vec![ItemStack {
+                item_id: 10,
+                quantity: 255
+            }]
         );
     }
 

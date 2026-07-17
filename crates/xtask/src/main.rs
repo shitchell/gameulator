@@ -57,8 +57,7 @@ fn to_json(map: &BTreeMap<u16, String>) -> Result<String> {
 
 fn write_table(out_dir: &Path, name: &str, map: &BTreeMap<u16, String>) -> Result<()> {
     let path = out_dir.join(name);
-    std::fs::write(&path, to_json(map)?)
-        .with_context(|| format!("writing {}", path.display()))?;
+    std::fs::write(&path, to_json(map)?).with_context(|| format!("writing {}", path.display()))?;
     Ok(())
 }
 
@@ -122,8 +121,7 @@ fn main() -> Result<()> {
     );
 
     let out_dir = root.join("crates/pokegen1/src/games/yellow_legacy/generated");
-    std::fs::create_dir_all(&out_dir)
-        .with_context(|| format!("creating {}", out_dir.display()))?;
+    std::fs::create_dir_all(&out_dir).with_context(|| format!("creating {}", out_dir.display()))?;
 
     write_table(&out_dir, "species.json", &species)?;
     write_table(&out_dir, "moves.json", &moves)?;

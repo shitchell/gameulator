@@ -89,10 +89,7 @@ mod tests {
     fn party_count_zero_is_invalid() {
         let save = synthetic_save(0, &[]);
         assert_eq!(party_count(&save), Err(ParseError::InvalidPartyCount(0)));
-        assert_eq!(
-            party_species(&save),
-            Err(ParseError::InvalidPartyCount(0))
-        );
+        assert_eq!(party_species(&save), Err(ParseError::InvalidPartyCount(0)));
     }
 
     #[test]

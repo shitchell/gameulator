@@ -134,7 +134,13 @@ mod tests {
         let save = parse_save(buf).expect("full save should parse");
 
         assert_eq!(save.trainer, "RED");
-        assert_eq!(save.playtime, Playtime { hours: 24, minutes: 12 });
+        assert_eq!(
+            save.playtime,
+            Playtime {
+                hours: 24,
+                minutes: 12
+            }
+        );
 
         assert_eq!(save.party.len(), 1);
         let mon = &save.party[0];
@@ -149,22 +155,39 @@ mod tests {
         assert_eq!(mon.nickname, Some("SPARKY".to_string()));
         assert_eq!(
             mon.moves,
-            vec![MoveSlot { move_id: 85, pp: 15, pp_ups: 0, slot: 0 }]
+            vec![MoveSlot {
+                move_id: 85,
+                pp: 15,
+                pp_ups: 0,
+                slot: 0
+            }]
         );
         assert!(mon.status.paralyze);
 
         assert_eq!(
             save.bag,
             vec![
-                ItemStack { item_id: 2, quantity: 12 },
-                ItemStack { item_id: 40, quantity: 5 },
+                ItemStack {
+                    item_id: 2,
+                    quantity: 12
+                },
+                ItemStack {
+                    item_id: 40,
+                    quantity: 5
+                },
             ]
         );
         assert_eq!(
             save.pc,
             vec![
-                ItemStack { item_id: 20, quantity: 10 },
-                ItemStack { item_id: 4, quantity: 99 },
+                ItemStack {
+                    item_id: 20,
+                    quantity: 10
+                },
+                ItemStack {
+                    item_id: 4,
+                    quantity: 99
+                },
             ]
         );
 
@@ -191,7 +214,10 @@ mod tests {
         let err = parse_save(vec![0u8; 100]).unwrap_err();
         assert_eq!(
             err,
-            ParseError::TruncatedSave { expected: 0x8000, got: 100 }
+            ParseError::TruncatedSave {
+                expected: 0x8000,
+                got: 100
+            }
         );
     }
 

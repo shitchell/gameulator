@@ -84,7 +84,9 @@ fn resolve(name: Option<&str>, id: u8) -> String {
 fn conditions(status: &Status) -> Vec<Condition> {
     let mut out = Vec::new();
     if status.sleep_turns > 0 {
-        out.push(Condition::Sleep { turns: status.sleep_turns });
+        out.push(Condition::Sleep {
+            turns: status.sleep_turns,
+        });
     }
     if status.poison {
         out.push(Condition::Poison);
@@ -103,10 +105,9 @@ fn conditions(status: &Status) -> Vec<Condition> {
 
 /// Load and parse a Gen-1 save from `path`.
 pub fn load_save(path: &Path) -> anyhow::Result<Save> {
-    let bytes = std::fs::read(path)
-        .with_context(|| format!("reading save file {}", path.display()))?;
-    pokegen1::parse_save(bytes)
-        .with_context(|| format!("parsing save file {}", path.display()))
+    let bytes =
+        std::fs::read(path).with_context(|| format!("reading save file {}", path.display()))?;
+    pokegen1::parse_save(bytes).with_context(|| format!("parsing save file {}", path.display()))
 }
 
 /// Build a presentation-ready summary of the party.
@@ -247,7 +248,10 @@ mod tests {
     fn save_with_party(party: Vec<Pokemon>) -> Save {
         Save {
             trainer: "RED".to_string(),
-            playtime: Playtime { hours: 24, minutes: 12 },
+            playtime: Playtime {
+                hours: 24,
+                minutes: 12,
+            },
             party,
             bag: vec![],
             pc: vec![],
@@ -357,16 +361,36 @@ mod tests {
     fn party_summary_resolves_moves() {
         let mut m = mon(25, None);
         m.moves = vec![
-            MoveSlot { move_id: 85, pp: 15, pp_ups: 2, slot: 0 },
-            MoveSlot { move_id: 200, pp: 5, pp_ups: 0, slot: 2 },
+            MoveSlot {
+                move_id: 85,
+                pp: 15,
+                pp_ups: 2,
+                slot: 0,
+            },
+            MoveSlot {
+                move_id: 200,
+                pp: 5,
+                pp_ups: 0,
+                slot: 2,
+            },
         ];
         let save = save_with_party(vec![m]);
         let out = party_summary(&save, &StubData);
         assert_eq!(
             out[0].moves,
             vec![
-                MoveView { name: "THUNDERBOLT".to_string(), pp: 15, pp_ups: 2, slot: 0 },
-                MoveView { name: "#200".to_string(), pp: 5, pp_ups: 0, slot: 2 },
+                MoveView {
+                    name: "THUNDERBOLT".to_string(),
+                    pp: 15,
+                    pp_ups: 2,
+                    slot: 0
+                },
+                MoveView {
+                    name: "#200".to_string(),
+                    pp: 5,
+                    pp_ups: 0,
+                    slot: 2
+                },
             ]
         );
     }
@@ -387,16 +411,34 @@ mod tests {
 
     #[test]
     fn items_view_resolves_names_and_quantity() {
-        let items = vec![ItemStack { item_id: 1, quantity: 5 }];
+        let items = vec![ItemStack {
+            item_id: 1,
+            quantity: 5,
+        }];
         let out = items_view(&items, &StubData);
-        assert_eq!(out, vec![ItemView { name: "MASTER BALL".to_string(), quantity: 5 }]);
+        assert_eq!(
+            out,
+            vec![ItemView {
+                name: "MASTER BALL".to_string(),
+                quantity: 5
+            }]
+        );
     }
 
     #[test]
     fn items_view_unknown_id_falls_back_to_hash_id() {
-        let items = vec![ItemStack { item_id: 99, quantity: 3 }];
+        let items = vec![ItemStack {
+            item_id: 99,
+            quantity: 3,
+        }];
         let out = items_view(&items, &StubData);
-        assert_eq!(out, vec![ItemView { name: "#99".to_string(), quantity: 3 }]);
+        assert_eq!(
+            out,
+            vec![ItemView {
+                name: "#99".to_string(),
+                quantity: 3
+            }]
+        );
     }
 
     #[test]
@@ -407,7 +449,10 @@ mod tests {
             info,
             SaveInfoView {
                 trainer: "RED".to_string(),
-                playtime: Playtime { hours: 24, minutes: 12 },
+                playtime: Playtime {
+                    hours: 24,
+                    minutes: 12
+                },
                 checksum_ok: true,
             }
         );

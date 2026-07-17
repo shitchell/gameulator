@@ -93,8 +93,7 @@ fn titlecase_move_const(name: &str) -> String {
             let mut chars = word.chars();
             match chars.next() {
                 Some(first) => {
-                    first.to_uppercase().collect::<String>()
-                        + &chars.as_str().to_lowercase()
+                    first.to_uppercase().collect::<String>() + &chars.as_str().to_lowercase()
                 }
                 None => String::new(),
             }

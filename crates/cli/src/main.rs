@@ -65,7 +65,11 @@ fn main() -> Result<()> {
     let game = YellowLegacy::new();
 
     match cli.command {
-        Command::Party { save, json, compact } => {
+        Command::Party {
+            save,
+            json,
+            compact,
+        } => {
             let parsed = app::load_save(&save)?;
             let view = app::party_summary(&parsed, &game);
             if json {
