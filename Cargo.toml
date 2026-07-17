@@ -2,10 +2,13 @@
 resolver = "2"
 members = ["crates/pokegen1", "crates/app", "crates/cli", "crates/sync", "crates/web-server", "crates/xtask", "crates/web"]
 
-# `crates/web` targets wasm32-unknown-unknown (Leptos CSR) and cannot be built
-# natively. Excluding it from default-members means bare `cargo build`/`cargo test`
-# skip it. Native verification: `cargo test --workspace --exclude web`.
-# Frontend verification: wasm target + `trunk build` (run from crates/web).
+# `crates/web` targets wasm32 (Leptos CSR). It happens to compile on the host
+# today, but we keep it OUT of default-members so bare `cargo build`/`cargo test`
+# stay fast and can't be broken by a future wasm-only dep. This is a speed/isolation
+# convention, NOT a correctness requirement — `cargo test --workspace` still works.
+# Native suite: `cargo test --workspace --exclude web` (skips recompiling web on the
+# host). Frontend: `cargo check -p web --target wasm32-unknown-unknown` + `trunk build`
+# (from crates/web). NOTE: add any new NATIVE crate to BOTH members and default-members.
 default-members = ["crates/pokegen1", "crates/app", "crates/cli", "crates/sync", "crates/web-server", "crates/xtask"]
 
 [workspace.package]
