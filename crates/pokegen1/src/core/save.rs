@@ -88,7 +88,7 @@ mod tests {
         let mut buf = blank_sram();
 
         // Trainer name "RED".
-        seed(&mut buf, sram::NAME, &[0x92, 0x87, 0x80, 0x94, 0x8D, 0x50]);
+        seed(&mut buf, sram::NAME, &[0x91, 0x84, 0x83, 0x50]);
 
         // Playtime 24h 12m.
         seed(&mut buf, sram::PLAYTIME_HOURS, &[24]);

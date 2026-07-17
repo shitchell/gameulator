@@ -36,7 +36,7 @@ mod tests {
     fn trainer_name_decodes_seeded_name() {
         let mut buf = blank_sram();
         // "RED" in the Gen-1 charmap, 0x50-terminated.
-        seed(&mut buf, sram::NAME, &[0x92, 0x87, 0x80, 0x94, 0x8D, 0x50]);
+        seed(&mut buf, sram::NAME, &[0x91, 0x84, 0x83, 0x50]);
         let save = SaveData::new(buf);
         assert_eq!(trainer_name(&save), "RED");
     }

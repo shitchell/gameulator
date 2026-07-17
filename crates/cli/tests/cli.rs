@@ -21,7 +21,7 @@ fn synthetic_save() -> Vec<u8> {
     let mut buf = vec![0u8; sram::SAVE_LEN];
 
     // Trainer "RED" (Gen-1 charmap, 0x50-terminated).
-    seed(&mut buf, sram::NAME, &[0x92, 0x87, 0x80, 0x94, 0x8D, 0x50]);
+    seed(&mut buf, sram::NAME, &[0x91, 0x84, 0x83, 0x50]);
 
     // One Pokémon in the party.
     seed(&mut buf, sram::PARTY_COUNT, &[1]);

@@ -148,11 +148,11 @@ git commit -m "build: pin Yellow Legacy v1.0.10 submodule + ROM build target"
 - Test: same file (`#[cfg(test)]`)
 
 **Step 1: Write failing test** — decode a known Gen-1 encoded name. `0x80..` = `A..Z`,
-`0x50` terminates; `RED` = `[0x92,0x87,0x80,0x94,0x8D,0x50]`.
+`0x50` terminates; `RED` = `[0x91,0x84,0x83,0x50]`.
 ```rust
 #[test]
 fn decodes_name_until_terminator() {
-    assert_eq!(decode_string(&[0x92,0x87,0x80,0x94,0x8D,0x50,0xFF]), "RED");
+    assert_eq!(decode_string(&[0x91,0x84,0x83,0x50,0xFF]), "RED");
 }
 ```
 
