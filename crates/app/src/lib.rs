@@ -23,7 +23,11 @@ pub enum GameId {
 /// The controller owns the id→overlay mapping so views stay game-agnostic:
 /// a view passes a [`GameId`] and receives a resolver, never naming an overlay
 /// crate. Adding a game = one new arm here, with zero view changes.
-pub fn game_data(game: GameId) -> Box<dyn GameData> {
+///
+/// The `+ Send` bound lets callers move the resolver across threads (the sync
+/// watcher runs its blocking loop on a spawned thread). Overlays are plain
+/// `HashMap` tables, so `Send` is trivially satisfied.
+pub fn game_data(game: GameId) -> Box<dyn GameData + Send> {
     match game {
         GameId::YellowLegacy => Box::new(pokegen1::YellowLegacy::new()),
     }

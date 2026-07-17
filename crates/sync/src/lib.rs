@@ -9,6 +9,7 @@ pub mod process;
 pub mod regression;
 pub mod snapshot;
 pub mod status;
+pub mod watch;
 
 #[cfg(test)]
 pub(crate) mod test_support;
