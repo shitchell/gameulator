@@ -789,10 +789,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "app",
+ "assert_cmd",
  "chrono",
+ "clap",
  "notify",
  "notify-debouncer-full",
  "pokegen1",
+ "predicates",
  "serde",
  "serde_json",
  "tempfile",

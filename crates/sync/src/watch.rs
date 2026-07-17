@@ -50,6 +50,19 @@ pub fn run(cfg: Config, game: Box<dyn GameData + Send>) -> anyhow::Result<()> {
         .watch(&dir, RecursiveMode::NonRecursive)
         .with_context(|| format!("watching directory {}", dir.display()))?;
 
+    // Startup pass: process the CURRENT save once so status.json is fresh the
+    // moment we launch (not only after the next Syncthing write). A missing save
+    // is a normal WAIT-STATE, not an error (Task-1 review decision): the watcher
+    // stays up and processes it once it appears.
+    if cfg.save_path.exists() {
+        handle_change(&cfg, game.as_ref());
+    } else {
+        eprintln!(
+            "[sync] no save at {} yet — waiting for it to appear",
+            cfg.save_path.display()
+        );
+    }
+
     // Blocking loop: the debouncer delivers coalesced batches on `rx`.
     for result in rx {
         match result {
@@ -80,7 +93,7 @@ pub fn run(cfg: Config, game: Box<dyn GameData + Send>) -> anyhow::Result<()> {
 /// outcome. Never panics or propagates: a read error (file mid-rename / not yet
 /// present) and a pipeline error (e.g. a transient status.json write failure)
 /// are both LOGGED-AND-RETURN so the watcher keeps running.
-fn handle_change(cfg: &Config, game: &dyn GameData) {
+pub(crate) fn handle_change(cfg: &Config, game: &dyn GameData) {
     let bytes = match std::fs::read(&cfg.save_path) {
         Ok(b) => b,
         Err(e) => {
@@ -182,6 +195,43 @@ mod tests {
 
         // Keep the TempDir alive until assertions finish.
         drop(dir);
+    }
+
+    #[test]
+    fn startup_pass_processes_the_existing_save_synchronously() {
+        // The startup pass (in `run`) calls `handle_change` once for the CURRENT
+        // save so status.json is fresh immediately. This exercises that behavior
+        // directly — no blocking loop, no timing — by calling `handle_change`.
+        let dir = tempfile::tempdir().unwrap();
+        let save_path = dir.path().join("save.sav");
+        let snapshots_dir = dir.path().join("snapshots");
+        let status_path = dir.path().join("status.json");
+
+        std::fs::write(&save_path, test_support::valid_save_bytes(20, 30)).unwrap();
+
+        let cfg = Config {
+            save_path,
+            snapshots_dir: snapshots_dir.clone(),
+            status_path: status_path.clone(),
+            debounce: Duration::from_millis(200),
+        };
+
+        let game = app::game_data(app::GameId::YellowLegacy);
+        crate::watch::handle_change(&cfg, game.as_ref());
+
+        assert!(
+            status_path.exists(),
+            "status.json must be written on startup"
+        );
+        assert_eq!(
+            count_savs(&snapshots_dir),
+            1,
+            "a snapshot must be written on startup"
+        );
+
+        let text = std::fs::read_to_string(&status_path).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&text).unwrap();
+        assert_eq!(v["party"][0]["species"], "MEWTWO");
     }
 
     fn count_savs(dir: &std::path::Path) -> usize {
