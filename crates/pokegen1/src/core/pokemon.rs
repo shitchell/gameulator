@@ -55,12 +55,26 @@ pub struct Status {
     pub paralyze: bool,
 }
 
-/// One occupied move slot (empty slots — move id 0 — are skipped).
+impl Status {
+    /// Whether ANY non-volatile status condition is present.
+    ///
+    /// A single home for the "has any status" predicate used by app/cli.
+    pub fn any(&self) -> bool {
+        self.sleep_turns > 0 || self.poison || self.burn || self.freeze || self.paralyze
+    }
+}
+
+/// One occupied move slot (empty slots — move id 0 — are skipped from the
+/// `Vec`, but the physical slot index is preserved in [`MoveSlot::slot`]).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MoveSlot {
     pub move_id: u8,
     pub pp: u8,
     pub pp_ups: u8,
+    /// Physical move slot index (0–3) this move occupied in the struct.
+    /// Preserved even though empty (id 0) slots are skipped from the `Vec`,
+    /// so move-reorder / PP-per-slot logic can address the original slot.
+    pub slot: u8,
 }
 
 /// A single party Pokémon, parsed from its 44-byte struct.
@@ -77,8 +91,23 @@ pub struct Pokemon {
     /// 0..=4 move slots; empty (id 0) slots are skipped, preserving order.
     pub moves: Vec<MoveSlot>,
     pub status: Status,
-    /// Derived: `hp == 0`.
-    pub fainted: bool,
+    /// In-game nickname, decoded from the party nickname region (which lives
+    /// OUTSIDE the 44-byte struct). [`parse_pokemon`] always sets this to
+    /// `None`; [`crate::core::party::parse_party`] populates it. `None` means
+    /// the nickname region was empty.
+    pub nickname: Option<String>,
+}
+
+impl Pokemon {
+    /// Whether this Pokémon has fainted.
+    ///
+    /// Derived from `hp == 0` (matching read_save's "override conds with
+    /// FAINTED when cur==0"). Kept as a method rather than a stored field
+    /// because it is denormalized from `hp`; the app-layer view materializes
+    /// it for JSON later.
+    pub fn fainted(&self) -> bool {
+        self.hp == 0
+    }
 }
 
 /// Parse the party Pokémon in `slot` (0-based).
@@ -113,6 +142,7 @@ pub fn parse_pokemon(save: &SaveData, slot: usize) -> Pokemon {
             move_id,
             pp: pp_byte & PP_MASK,
             pp_ups: (pp_byte >> PP_UPS_SHIFT) & 0x3,
+            slot: j as u8,
         });
     }
 
@@ -127,7 +157,9 @@ pub fn parse_pokemon(save: &SaveData, slot: usize) -> Pokemon {
         spc: save.read_u16_be(base + F_SPC),
         moves,
         status,
-        fainted: hp == 0,
+        // Nicknames live outside the 44-byte struct, so the struct parser
+        // cannot know them; `parse_party` fills this in.
+        nickname: None,
     }
 }
 
@@ -191,9 +223,9 @@ mod tests {
         assert_eq!(
             mon.moves,
             vec![
-                MoveSlot { move_id: 85, pp: 48, pp_ups: 2 },
-                MoveSlot { move_id: 57, pp: 15, pp_ups: 0 },
-                MoveSlot { move_id: 92, pp: 37, pp_ups: 0 },
+                MoveSlot { move_id: 85, pp: 48, pp_ups: 2, slot: 0 },
+                MoveSlot { move_id: 57, pp: 15, pp_ups: 0, slot: 2 },
+                MoveSlot { move_id: 92, pp: 37, pp_ups: 0, slot: 3 },
             ]
         );
     }
@@ -216,7 +248,7 @@ mod tests {
     #[test]
     fn not_fainted_when_hp_nonzero() {
         let mon = parse_pokemon(&save_with_mon(), 0);
-        assert!(!mon.fainted);
+        assert!(!mon.fainted());
     }
 
     #[test]
@@ -227,7 +259,31 @@ mod tests {
         seed(&mut bytes, sram::PARTY_DATA + 0x21, &[50]);
         let mon = parse_pokemon(&SaveData::new(bytes), 0);
         assert_eq!(mon.hp, 0);
-        assert!(mon.fainted);
+        assert!(mon.fainted());
+    }
+
+    #[test]
+    fn status_any_false_when_clean() {
+        let status = Status {
+            sleep_turns: 0,
+            poison: false,
+            burn: false,
+            freeze: false,
+            paralyze: false,
+        };
+        assert!(!status.any());
+    }
+
+    #[test]
+    fn status_any_true_when_paralyzed() {
+        let status = Status {
+            sleep_turns: 0,
+            poison: false,
+            burn: false,
+            freeze: false,
+            paralyze: true,
+        };
+        assert!(status.any());
     }
 
     #[test]
