@@ -1,0 +1,6 @@
+/target
+/games/
+**/*.gbc
+**/*.sav
+**/*.srm
+/vendor/pokemon-yellow-legacy/
