@@ -8,7 +8,7 @@ SUBMODULE := vendor/pokemon-yellow-legacy
 ROM       := $(SUBMODULE)/pokeyellow.gbc
 GAME_DIR  := games/Pokemon/Yellow Legacy/rom
 
-.PHONY: rom
+.PHONY: rom web
 
 # Build the Yellow Legacy ROM from the pinned disassembly submodule and copy it
 # into the (gitignored) game rom directory.
@@ -19,3 +19,13 @@ rom:
 	$(MAKE) -C "$(SUBMODULE)" RGBDS="$(RGBDS)"
 	mkdir -p "$(GAME_DIR)"
 	cp "$(ROM)" "$(GAME_DIR)/"
+
+# Run the web dashboard end-to-end: build the WASM frontend (release) then serve
+# it over the real save's status.json. Run from the repo root — the server's
+# relative default paths resolve there. Blocks (Ctrl-C to stop); interactive use
+# only, not part of the build.
+web:
+	cd crates/web && trunk build --release
+	cargo run -p web-server --bin gameulator-web -- \
+		--dist-dir crates/web/dist \
+		--status-path "games/Pokemon/Yellow Legacy/saves/status.json"
