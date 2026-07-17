@@ -5,6 +5,7 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+pub mod snapshot;
 pub mod validate;
 
 #[cfg(test)]
