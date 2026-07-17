@@ -12,7 +12,10 @@ GAME_DIR  := games/Pokemon/Yellow Legacy/rom
 
 # Build the Yellow Legacy ROM from the pinned disassembly submodule and copy it
 # into the (gitignored) game rom directory.
+# Preflight: the disassembly requires exactly RGBDS 0.6.1 — newer versions break
+# the build — so assert the version before doing anything.
 rom:
-	$(MAKE) -C $(SUBMODULE) RGBDS=$(RGBDS)
+	@"$(RGBDS)rgbasm" --version | grep -q '0.6.1' || { echo "ERROR: need RGBDS 0.6.1 at RGBDS=$(RGBDS) (got: $$("$(RGBDS)rgbasm" --version 2>/dev/null || echo none)). Newer versions break the build."; exit 1; }
+	$(MAKE) -C "$(SUBMODULE)" RGBDS="$(RGBDS)"
 	mkdir -p "$(GAME_DIR)"
-	cp $(ROM) "$(GAME_DIR)/"
+	cp "$(ROM)" "$(GAME_DIR)/"
