@@ -11,7 +11,9 @@ cargo run -p xtask
 ```
 
 Each file is a JSON object mapping a stringified id to a display name, e.g.
-`{"131": "MEWTWO", ...}`. Keys are in numeric order for stable diffs.
+`{"131": "MEWTWO", ...}`. Keys are emitted in deterministic (lexical string)
+order, so regeneration produces stable, minimal diffs. Consumers key by id and
+do not rely on file order.
 
 ## What each table contains
 

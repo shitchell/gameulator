@@ -100,6 +100,27 @@ fn main() -> Result<()> {
         "item id 1 must be MASTER BALL"
     );
 
+    // Expected entry counts for the pinned ROM (tag V1.0.10). A spot-check on a
+    // few ids catches wholesale re-indexing but NOT a truncated/over-long table,
+    // so assert the counts too: this turns a silent disassembly-format drift on a
+    // version bump into a loud failure at regeneration time (when a human is
+    // present to reconcile it). Update these deliberately when bumping the ROM.
+    anyhow::ensure!(
+        species.len() == 190,
+        "expected 190 species entries (V1.0.10), got {} — did the disassembly name-table format change?",
+        species.len()
+    );
+    anyhow::ensure!(
+        moves.len() == 165,
+        "expected 165 move entries (V1.0.10), got {} — did the disassembly name-table format change?",
+        moves.len()
+    );
+    anyhow::ensure!(
+        items.len() == 138,
+        "expected 138 item entries (83 regular + 5 HM + 50 TM, V1.0.10), got {} — did the disassembly item format change?",
+        items.len()
+    );
+
     let out_dir = root.join("crates/pokegen1/src/games/yellow_legacy/generated");
     std::fs::create_dir_all(&out_dir)
         .with_context(|| format!("creating {}", out_dir.display()))?;
