@@ -1,0 +1,23 @@
+[package]
+name = "sync"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+
+# The crate is named `sync`, but the shipped binary is `gameulator-sync`.
+[[bin]]
+name = "gameulator-sync"
+path = "src/main.rs"
+
+[dependencies]
+pokegen1 = { path = "../pokegen1" }
+app = { path = "../app" }
+notify = { workspace = true }
+notify-debouncer-full = { workspace = true }
+chrono = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"
