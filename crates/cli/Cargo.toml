@@ -3,3 +3,21 @@ name = "cli"
 version = "0.1.0"
 edition.workspace = true
 license.workspace = true
+
+# The crate is named `cli`, but the shipped binary is `gameulator`
+# (Task 1 review follow-up).
+[[bin]]
+name = "gameulator"
+path = "src/main.rs"
+
+[dependencies]
+app = { path = "../app" }
+pokegen1 = { path = "../pokegen1" }
+clap = { workspace = true }
+anyhow = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+assert_cmd = "2"
+tempfile = "3"
+predicates = "3"
