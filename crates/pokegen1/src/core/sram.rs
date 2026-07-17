@@ -24,7 +24,10 @@ pub const PC_ITEMS: usize = 0x2834;
 pub const PC_ITEMS_DATA: usize = 0x2835;
 /// Playtime hours (1 byte).
 pub const PLAYTIME_HOURS: usize = 0x2CED;
-/// Playtime minutes (1 byte).
+/// Playtime minutes (1 byte). Note the gap: `0x2CEE` (between hours and
+/// minutes) is the max-time-reached flag and is intentionally skipped — minutes
+/// is NOT at `PLAYTIME_HOURS + 1`. (Gen-1 playtime block: hours / flag / minutes
+/// / frames.)
 pub const PLAYTIME_MINUTES: usize = 0x2CEF;
 /// Number of Pokémon in the party (1 byte).
 pub const PARTY_COUNT: usize = 0x2F2C;
