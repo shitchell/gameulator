@@ -8,10 +8,23 @@ use serde::Serialize;
 
 use pokegen1::{GameData, ItemStack, Playtime, Pokemon, Save, Status};
 
+/// A single status condition on a party member. Views format these however they
+/// like (the CLI renders read_save.py-style labels; a web view can badge them).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case", tag = "kind")]
+pub enum Condition {
+    Sleep { turns: u8 },
+    Poison,
+    Burn,
+    Freeze,
+    Paralyze,
+}
+
 /// A single party member, resolved and materialized for presentation.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct PartyMemberView {
     pub slot: u8,
+    /// Resolved species name. Unresolved ids render as `#<id>`.
     pub species: String,
     pub nickname: Option<String>,
     pub level: u8,
@@ -22,13 +35,16 @@ pub struct PartyMemberView {
     pub def: u16,
     pub spd: u16,
     pub spc: u16,
-    pub status: Vec<String>,
+    /// Structured status conditions. Rendering the label strings (e.g.
+    /// `SLEEP(3)`, `POISON`) belongs to the view, not this controller.
+    pub status: Vec<Condition>,
     pub moves: Vec<MoveView>,
 }
 
 /// A single move slot, name-resolved for presentation.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct MoveView {
+    /// Resolved move name. Unresolved ids render as `#<id>`.
     pub name: String,
     pub pp: u8,
     pub pp_ups: u8,
@@ -38,6 +54,7 @@ pub struct MoveView {
 /// A single item stack, name-resolved for presentation (bag or PC).
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ItemView {
+    /// Resolved item name. Unresolved ids render as `#<id>`.
     pub name: String,
     pub quantity: u8,
 }
@@ -50,28 +67,36 @@ pub struct SaveInfoView {
     pub checksum_ok: bool,
 }
 
-/// Render a [`Status`] bitfield into human-readable condition labels.
+/// Resolve an id to a display name, falling back to `#<id>` for unknown ids
+/// (mirrors read_save.py's `#id`). Single home for the fallback convention.
+fn resolve(name: Option<&str>, id: u8) -> String {
+    name.map(str::to_string).unwrap_or_else(|| format!("#{id}"))
+}
+
+/// Build the structured status conditions from a [`Status`] bitfield.
 ///
-/// Mirrors `read_save.py`'s condition list and order: `SLEEP(n)`, `POISON`,
-/// `BURN`, `FREEZE`, `PARALYZE`. Fainted is deliberately NOT included here — it
-/// is the separate `fainted` bool on [`PartyMemberView`], materialized from
-/// `Pokemon::fainted()`. A healthy mon yields an empty `Vec`.
-fn status_labels(status: &Status) -> Vec<String> {
+/// Mirrors `read_save.py`'s condition list and order: Sleep (only when
+/// `sleep_turns > 0`, carrying the turn count), then Poison, Burn, Freeze,
+/// Paralyze. Fainted is deliberately NOT included here — it is the separate
+/// `fainted` bool on [`PartyMemberView`], materialized from
+/// `Pokemon::fainted()`. A healthy mon yields an empty `Vec`. Views own the
+/// mapping from [`Condition`] to label strings.
+fn conditions(status: &Status) -> Vec<Condition> {
     let mut out = Vec::new();
     if status.sleep_turns > 0 {
-        out.push(format!("SLEEP({})", status.sleep_turns));
+        out.push(Condition::Sleep { turns: status.sleep_turns });
     }
     if status.poison {
-        out.push("POISON".to_string());
+        out.push(Condition::Poison);
     }
     if status.burn {
-        out.push("BURN".to_string());
+        out.push(Condition::Burn);
     }
     if status.freeze {
-        out.push("FREEZE".to_string());
+        out.push(Condition::Freeze);
     }
     if status.paralyze {
-        out.push("PARALYZE".to_string());
+        out.push(Condition::Paralyze);
     }
     out
 }
@@ -94,14 +119,13 @@ pub fn party_summary(save: &Save, game: &impl GameData) -> Vec<PartyMemberView> 
 }
 
 /// Build a presentation-ready view of an item list (bag or PC).
+///
+/// Called for both `&save.bag` and `&save.pc`.
 pub fn items_view(items: &[ItemStack], game: &impl GameData) -> Vec<ItemView> {
     items
         .iter()
         .map(|item| ItemView {
-            name: game
-                .item_name(item.item_id)
-                .map(str::to_string)
-                .unwrap_or_else(|| format!("#{}", item.item_id)),
+            name: resolve(game.item_name(item.item_id), item.item_id),
             quantity: item.quantity,
         })
         .collect()
@@ -122,10 +146,7 @@ pub fn save_info(save: &Save) -> SaveInfoView {
 /// `#id` fallback, nickname suppression (keep it only if it differs from the
 /// resolved species name), and materialization of the `fainted` bool.
 fn party_member_view(slot: u8, mon: &Pokemon, game: &impl GameData) -> PartyMemberView {
-    let species = game
-        .species_name(mon.species_id)
-        .map(str::to_string)
-        .unwrap_or_else(|| format!("#{}", mon.species_id));
+    let species = resolve(game.species_name(mon.species_id), mon.species_id);
 
     // Nickname suppression: keep only a nickname that differs from the resolved
     // species name (mirrors read_save.py's `nick if nick and nick!=nm else None`).
@@ -139,10 +160,7 @@ fn party_member_view(slot: u8, mon: &Pokemon, game: &impl GameData) -> PartyMemb
         .moves
         .iter()
         .map(|m| MoveView {
-            name: game
-                .move_name(m.move_id)
-                .map(str::to_string)
-                .unwrap_or_else(|| format!("#{}", m.move_id)),
+            name: resolve(game.move_name(m.move_id), m.move_id),
             pp: m.pp,
             pp_ups: m.pp_ups,
             slot: m.slot,
@@ -161,7 +179,7 @@ fn party_member_view(slot: u8, mon: &Pokemon, game: &impl GameData) -> PartyMemb
         def: mon.def,
         spd: mon.spd,
         spc: mon.spc,
-        status: status_labels(&mon.status),
+        status: conditions(&mon.status),
         moves,
     }
 }
@@ -280,7 +298,7 @@ mod tests {
         let save = save_with_party(vec![m]);
         let out = party_summary(&save, &StubData);
         assert!(out[0].fainted);
-        assert_eq!(out[0].status, Vec::<String>::new());
+        assert_eq!(out[0].status, Vec::<Condition>::new());
     }
 
     #[test]
@@ -296,7 +314,7 @@ mod tests {
         m.status.paralyze = true;
         let save = save_with_party(vec![m]);
         let out = party_summary(&save, &StubData);
-        assert_eq!(out[0].status, vec!["PARALYZE".to_string()]);
+        assert_eq!(out[0].status, vec![Condition::Paralyze]);
     }
 
     #[test]
@@ -305,7 +323,7 @@ mod tests {
         m.status.sleep_turns = 3;
         let save = save_with_party(vec![m]);
         let out = party_summary(&save, &StubData);
-        assert_eq!(out[0].status, vec!["SLEEP(3)".to_string()]);
+        assert_eq!(out[0].status, vec![Condition::Sleep { turns: 3 }]);
     }
 
     #[test]
@@ -315,14 +333,24 @@ mod tests {
         m.status.burn = true;
         let save = save_with_party(vec![m]);
         let out = party_summary(&save, &StubData);
-        assert_eq!(out[0].status, vec!["POISON".to_string(), "BURN".to_string()]);
+        assert_eq!(out[0].status, vec![Condition::Poison, Condition::Burn]);
     }
 
     #[test]
     fn party_summary_healthy_has_empty_status() {
         let save = save_with_party(vec![mon(25, None)]);
         let out = party_summary(&save, &StubData);
-        assert_eq!(out[0].status, Vec::<String>::new());
+        assert_eq!(out[0].status, Vec::<Condition>::new());
+    }
+
+    #[test]
+    fn resolve_returns_name_when_known() {
+        assert_eq!(resolve(Some("MEWTWO"), 131), "MEWTWO");
+    }
+
+    #[test]
+    fn resolve_falls_back_to_hash_id_when_unknown() {
+        assert_eq!(resolve(None, 200), "#200");
     }
 
     #[test]
