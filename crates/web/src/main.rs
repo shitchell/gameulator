@@ -82,6 +82,9 @@ fn Dashboard() -> impl IntoView {
     let (status, set_status) = create_signal(Status::Loading);
     let (last_good, set_last_good) = create_signal::<Option<app::StatusView>>(None);
 
+    // This loop is never cancelled — safe because `Dashboard` is the root
+    // component (mounted via `mount_to_body`) and never unmounts. If it ever
+    // becomes an unmountable child, cancel this on `on_cleanup`.
     spawn_local(async move {
         let poll_ms = fetch_poll_ms().await;
         loop {

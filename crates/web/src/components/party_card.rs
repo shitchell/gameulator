@@ -6,6 +6,11 @@ use crate::components::{HpBar, MoveList, StatusBadges};
 
 /// Renders an `<article class="party-card">` (with `fainted` toggled) for one
 /// party member: title, level, HP bar, stats row, status badges, and moves.
+///
+/// Note: a fainted mon shows BOTH the `fainted` card styling AND any status
+/// badges — a deliberate divergence from the CLI (which collapses a fainted mon
+/// to just "FAINTED", discarding status bits). Here the class conveys fainted and
+/// the badges convey conditions; keep them independent.
 #[component]
 pub fn PartyCard(mon: app::PartyMemberView) -> impl IntoView {
     let title = match &mon.nickname {
