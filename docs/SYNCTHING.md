@@ -30,6 +30,9 @@ format and are deliberately NOT synced** — only the battery `.sav`.
    folder ID (e.g. `pizzaboy-saves`).
 4. Share that folder with your computer's Syncthing device (you'll accept it on
    the computer side below).
+   > You may need to do the computer setup first so its device ID exists to
+   > share with. The folder **ID** (`pizzaboy-saves`) is what's shared and must
+   > match on both devices; the local **path** differs per device (see below).
 
 ## Computer setup
 
@@ -43,8 +46,11 @@ format and are deliberately NOT synced** — only the battery `.sav`.
    ```
    The web UI is at <http://127.0.0.1:8384>.
 2. Pair the phone and computer devices (scan the QR / exchange device IDs).
-3. When the phone offers the shared `ROMs/saves/` folder, **accept it and set its
-   local path to the gitignored saves dir**:
+   **Accept the incoming _device_ first** — the shared-folder offer only appears
+   once the two devices are connected (this device-then-folder order is the most
+   common first-time snag).
+3. When the phone then offers the shared `ROMs/saves/` folder, **accept it and
+   set its local path to the gitignored saves dir**:
    ```
    games/Pokemon/Yellow Legacy/saves/
    ```
@@ -143,6 +149,11 @@ Read these so the watcher's output doesn't surprise you.
 
 ## Optional: run it in the background (systemd user unit)
 
+This unit runs the *installed* binary — first `cargo install --path crates/sync`
+(puts `gameulator-sync` in `~/.cargo/bin`). It orders `After=syncthing.service`
+but doesn't `Require` it: the watcher tolerates Syncthing being down (it just
+parks in the wait-state), so don't add a hard `Requires=`.
+
 `~/.config/systemd/user/gameulator-sync.service`:
 
 ```ini
@@ -154,6 +165,7 @@ After=syncthing.service
 # Absolute path avoids the relative-CWD gotcha above.
 ExecStart=%h/.cargo/bin/gameulator-sync --saves-dir "%h/projects/gameulator/games/Pokemon/Yellow Legacy/saves"
 Restart=on-failure
+RestartSec=5
 
 [Install]
 WantedBy=default.target
