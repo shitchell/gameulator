@@ -7,6 +7,7 @@ use std::time::Duration;
 
 pub mod regression;
 pub mod snapshot;
+pub mod status;
 pub mod validate;
 
 #[cfg(test)]

@@ -1,0 +1,117 @@
+//! `status.json` writer — the Milestone-3 web seam.
+//!
+//! After each accepted save the pipeline (Task 7) writes a `status.json`
+//! summarizing the parsed save plus change metadata. This is the file the
+//! Milestone-3 web dashboard reads (its WebSocket subscribes to changes). The
+//! writer reuses the `app` controller (`save_info` + `party_summary`) so the
+//! trainer/party/playtime rendering lives in ONE place — no logic duplicated
+//! here.
+
+use std::path::Path;
+
+use anyhow::Context;
+use serde::Serialize;
+
+use app::PartyMemberView;
+use pokegen1::{GameData, Playtime, Save};
+
+/// The parsed summary written to `status.json` after each accepted save. This is
+/// the seam the Milestone-3 web view reads/subscribes to. Serialize-only for now
+/// (M3 will add Deserialize on the app DTOs when the WASM view consumes it).
+#[derive(Debug, Clone, Serialize)]
+pub struct StatusView {
+    pub trainer: String,
+    pub playtime: Playtime,
+    pub checksum_ok: bool,
+    pub party: Vec<PartyMemberView>,
+    /// The snapshot timestamp for this change (the `stamp` used for the snapshot).
+    pub last_change: String,
+    /// Path to the snapshot written for this change, if any.
+    pub snapshot: Option<String>,
+}
+
+/// Build + write `status.json` from a parsed save. Reuses the `app` controller
+/// (save_info + party_summary) so the JSON contract is exactly the app DTOs +
+/// change metadata — no logic duplicated here.
+pub fn write_status(
+    path: &Path,
+    save: &Save,
+    game: &dyn GameData,
+    stamp: &str,
+    snapshot: Option<&Path>,
+) -> anyhow::Result<()> {
+    let info = app::save_info(save);
+    let status = StatusView {
+        trainer: info.trainer,
+        playtime: info.playtime,
+        checksum_ok: info.checksum_ok,
+        party: app::party_summary(save, game),
+        last_change: stamp.to_string(),
+        snapshot: snapshot.map(|p| p.display().to_string()),
+    };
+    let json = serde_json::to_string_pretty(&status)?;
+    std::fs::write(path, json)
+        .with_context(|| format!("writing status.json to {}", path.display()))?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_support;
+
+    #[test]
+    fn writes_status_with_metadata_and_resolved_party() {
+        let dir = tempfile::tempdir().unwrap();
+        let status_path = dir.path().join("status.json");
+        let snap_path = dir.path().join("snapshots/2026-07-17T14-30-00.000Z.sav");
+
+        let save = pokegen1::parse_save(test_support::valid_save_bytes(20, 30)).unwrap();
+        let game = app::game_data(app::GameId::YellowLegacy);
+
+        write_status(
+            &status_path,
+            &save,
+            game.as_ref(),
+            "2026-07-17T14-30-00.000Z",
+            Some(&snap_path),
+        )
+        .unwrap();
+
+        let text = std::fs::read_to_string(&status_path).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&text).unwrap();
+
+        assert_eq!(v["playtime"]["hours"], 20);
+        assert_eq!(v["playtime"]["minutes"], 30);
+        assert_eq!(v["checksum_ok"], true);
+
+        let party = v["party"].as_array().expect("party is an array");
+        assert!(!party.is_empty(), "party should be non-empty");
+        assert_eq!(party[0]["species"], "MEWTWO");
+
+        assert_eq!(v["last_change"], "2026-07-17T14-30-00.000Z");
+        assert_eq!(v["snapshot"], snap_path.display().to_string());
+    }
+
+    #[test]
+    fn snapshot_none_serializes_as_null() {
+        let dir = tempfile::tempdir().unwrap();
+        let status_path = dir.path().join("status.json");
+
+        let save = pokegen1::parse_save(test_support::valid_save_bytes(1, 2)).unwrap();
+        let game = app::game_data(app::GameId::YellowLegacy);
+
+        write_status(
+            &status_path,
+            &save,
+            game.as_ref(),
+            "2026-07-17T00-00-00.000Z",
+            None,
+        )
+        .unwrap();
+
+        let text = std::fs::read_to_string(&status_path).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&text).unwrap();
+        assert!(v["snapshot"].is_null());
+    }
+}
